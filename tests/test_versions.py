@@ -1,5 +1,7 @@
+import gzip
 import io
 import json
+import os
 import tempfile
 import unittest
 import urllib.error
@@ -86,6 +88,22 @@ class Digest(unittest.TestCase):
         self.assertEqual(again.projects, found.projects)
         self.assertEqual(again.checked, {"a": "2026-10-04"})
         self.assertEqual(meta, {"format": digest.FORMAT, "projects": 1})
+
+    def test_the_first_digests_file_is_read_then_replaced(self):
+        with tempfile.TemporaryDirectory() as d:
+            with open(f"{d}/meta.json", "w") as f:
+                json.dump({"format": 1}, f)
+            body = {
+                "projects": {"a": [nix("a", "1", "newest")]},
+                "checked": {"a": "2026-10-04"},
+            }
+            with gzip.open(f"{d}/projects.json.gz", "wt") as f:
+                json.dump(body, f)
+            found, _ = digest.read(d)
+            self.assertEqual(found.projects, body["projects"])
+            digest.write(d, found, {})
+            self.assertEqual(sorted(os.listdir(d)), ["meta.json", "projects.jsonl.gz"])
+            self.assertEqual(digest.read(d)[0].checked, {"a": "2026-10-04"})
 
 
 class Main(unittest.TestCase):

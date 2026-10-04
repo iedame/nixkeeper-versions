@@ -16,19 +16,22 @@ a second, under 1,000 a day, with a User-Agent linking here.
 
 On the `data` branch:
 
-- [`data/projects.json.gz`](https://raw.githubusercontent.com/iedame/nixkeeper-versions/data/data/projects.json.gz):
+- [`data/projects.jsonl.gz`](https://raw.githubusercontent.com/iedame/nixkeeper-versions/data/data/projects.jsonl.gz)
+  (about 12 MB): every Repology project with a nixpkgs package
+  (`nix_unstable`), one per line, sorted by name:
 
   ```json
-  {"projects": {"tracy": [{"repo": "nix_unstable", "srcname": "tracy_0_11",
-                           "version": "0.11.1", "status": "legacy"}, ...], ...},
-   "checked": {"tracy": "2026-10-04", ...}}
+  {"project": "tracy", "checked": "2026-10-04",
+   "entries": [{"repo": "nix_unstable", "srcname": "tracy_0_11",
+                "version": "0.11.1", "status": "legacy"}, ...]}
   ```
 
-  every Repology project with a nixpkgs package (`nix_unstable`), with each
-  package of it in every repository, as Repology's API gives them, trimmed
-  to `repo`, `version`, `status`, `srcname` (for nixpkgs, the package's
-  attribute) and `vulnerable` (when `true`), each entry once; and the day
-  each project was last read (`checked`).
+  with each package of it in every repository, as Repology's API gives
+  them, trimmed to `repo`, `version`, `status`, `srcname` (for nixpkgs, the
+  package's attribute) and `vulnerable` (when `true`), each entry once; and
+  the day it was last read (`checked`). One project per line, so a reader
+  can keep only those it wants while reading: about 25 MB of memory instead
+  of 1.4 GB for all of them at once.
 
 - [`data/meta.json`](https://raw.githubusercontent.com/iedame/nixkeeper-versions/data/data/meta.json):
   when the outdated projects were last read (`outdatedAt`), how many there

@@ -1,6 +1,6 @@
 name: "Digest: Repology's nixpkgs projects"
 
-# Keeps the digest (the data branch: data/projects.json.gz and data/meta.json)
+# Keeps the digest (the data branch: data/projects.jsonl.gz and data/meta.json)
 # up to date with Repology, daily before nixkeeper's sync (06:00 UTC): every
 # outdated nixpkgs project, the ones no longer outdated, and a seventh of all
 # nixpkgs' projects, so each is read weekly (nixkeeper_versions/cli.py). About

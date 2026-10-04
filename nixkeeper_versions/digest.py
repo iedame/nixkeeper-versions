@@ -1,26 +1,30 @@
-"""The digest nixkeeper reads (data/): projects.json.gz, every Repology
+"""The digest nixkeeper reads (data/): projects.jsonl.gz, every Repology
 project with a nixpkgs package (nix_unstable), as nixkeeper keeps a
 project's data, with when each was last read; and meta.json, about the
 sweeps that made it.
 
-projects.json.gz is one JSON object:
+projects.jsonl.gz has one project per line, sorted by name:
 
-    {"projects": {"tracy": [{"repo": "nix_unstable", "srcname": "tracy_0_11",
-                             "version": "0.11.1", "status": "legacy"}, ...],
-                  ...},
-     "checked": {"tracy": "2026-10-04", ...}}
+    {"project": "tracy", "checked": "2026-10-04",
+     "entries": [{"repo": "nix_unstable", "srcname": "tracy_0_11",
+                  "version": "0.11.1", "status": "legacy"}, ...]}
 
-each entry with Repology's "repo", "version", "status", and "srcname" (for
-nixpkgs, the attribute: nixkeeper finds a package's project by it) and
-"vulnerable": true when they're there, each entry once: as Repology's API
-gives them, trimmed as nixkeeper does (its sources/repology.py)."""
+so a reader can go through it line by line and keep only the projects it
+wants (nixkeeper: those of the packages it tracks), instead of holding all
+of them (about 1.4 GB of memory, as one JSON object). Each entry has
+Repology's "repo", "version", "status", and "srcname" (for nixpkgs, the
+attribute: nixkeeper finds a package's project by it) and "vulnerable":
+true when they're there, each entry once: as Repology's API gives them,
+trimmed as nixkeeper does (its sources/repology.py)."""
 
 import gzip
 import json
 import os
 
 FORMAT = 1
-PROJECTS = "projects.json.gz"
+PROJECTS = "projects.jsonl.gz"
+# The first digest's file, one JSON object: read once, then replaced.
+OLD_PROJECTS = "projects.json.gz"
 META = "meta.json"
 NIX_REPO = "nix_unstable"
 FIELDS = ("repo", "srcname", "version", "status", "vulnerable")
@@ -72,11 +76,25 @@ class Digest:
 
 
 def write(directory, found, meta):
-    """Write projects.json.gz and meta.json to directory. The same data gives
-    the same bytes (sorted, mtime 0)."""
+    """Write projects.jsonl.gz and meta.json to directory (and remove the old
+    projects.json.gz). The same data gives the same bytes (sorted, mtime 0)."""
     os.makedirs(directory, exist_ok=True)
-    body = {"projects": found.projects, "checked": found.checked}
-    data = json.dumps(body, separators=(",", ":"), sort_keys=True).encode()
+    old = os.path.join(directory, OLD_PROJECTS)
+    if os.path.exists(old):
+        os.remove(old)
+    lines = (
+        json.dumps(
+            {
+                "project": name,
+                "checked": found.checked[name],
+                "entries": found.projects[name],
+            },
+            separators=(",", ":"),
+        )
+        + "\n"
+        for name in sorted(found.projects)
+    )
+    data = "".join(lines).encode()
     with open(os.path.join(directory, PROJECTS), "wb") as f:
         f.write(gzip.compress(data, compresslevel=9, mtime=0))
     with open(os.path.join(directory, META), "w") as f:
@@ -89,8 +107,19 @@ def read(directory):
     try:
         with open(os.path.join(directory, META)) as f:
             meta = json.load(f)
-        with gzip.open(os.path.join(directory, PROJECTS), "rt") as f:
-            body = json.load(f)
+        found = Digest()
+        path = os.path.join(directory, PROJECTS)
+        if not os.path.exists(path) and os.path.exists(
+            old := os.path.join(directory, OLD_PROJECTS)
+        ):
+            with gzip.open(old, "rt") as f:
+                body = json.load(f)
+            return Digest(body["projects"], body["checked"]), meta
+        with gzip.open(path, "rt") as f:
+            for line in f:
+                project = json.loads(line)
+                found.projects[project["project"]] = project["entries"]
+                found.checked[project["project"]] = project["checked"]
     except FileNotFoundError:
         return Digest(), {}
-    return Digest(body["projects"], body["checked"]), meta
+    return found, meta
