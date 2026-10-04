@@ -1,0 +1,47 @@
+name: "Digest: Repology's nixpkgs projects"
+
+# Keeps the digest (the data branch: data/projects.json.gz and data/meta.json)
+# up to date with Repology, daily before nixkeeper's sync (06:00 UTC): every
+# outdated nixpkgs project, the ones no longer outdated, and a seventh of all
+# nixpkgs' projects, so each is read weekly (nixkeeper_versions/cli.py). About
+# 200 requests to Repology's API, one a second. The data branch is main plus
+# one commit with the digest (scripts/data-branch.sh).
+
+on:
+  schedule:
+    - cron: '7 4 * * *'   # daily at 04:07 UTC: done well before 06:00
+  workflow_dispatch:
+    inputs:
+      full:
+        description: "Read all nixpkgs projects (about an hour), not a seventh"
+        type: boolean
+        default: false
+
+# One run at a time: a run waits for the last instead of cancelling it.
+concurrency:
+  group: data-branch
+  cancel-in-progress: false
+
+permissions:
+  contents: write  # publishes the data branch
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+
+      - name: Restore the last published digest, on main
+        run: bash scripts/data-branch.sh restore
+
+      # The runner's Python 3: the digest uses the standard library only.
+      - name: Bring the digest up to date
+        run: python3 -m nixkeeper_versions data ${{ inputs.full && '--full' || '' }}
+
+      - name: Publish the digest if it changed
+        run: |
+          bash scripts/data-branch.sh publish "digest: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
