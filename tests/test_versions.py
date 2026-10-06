@@ -3,8 +3,11 @@ import io
 import json
 import os
 import tempfile
+import threading
+import time
 import unittest
 import urllib.error
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from unittest import mock
 
 from nixkeeper_versions import cli, digest, repology, sweep
@@ -204,3 +207,56 @@ class Get(unittest.TestCase):
             "github.com/iedame/nixkeeper-versions", req.get_header("User-agent")
         )
         self.assertEqual(req.get_header("Accept-encoding"), "gzip")
+
+
+class Deadline(unittest.TestCase):
+    """A whole answer has DEADLINE to arrive, however steadily it trickles
+    in: a real server on this machine sending a byte at a time."""
+
+    BODY = json.dumps({"x": "y" * 50}).encode()
+
+    def setUp(self):
+        body = self.BODY
+
+        class Handler(BaseHTTPRequestHandler):
+            def do_GET(self):
+                self.send_response(200)
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                try:
+                    for i in range(len(body)):
+                        self.wfile.write(body[i : i + 1])
+                        self.wfile.flush()
+                        if self.path.startswith("/slow"):
+                            time.sleep(0.02)
+                except OSError:
+                    pass  # the client gave up
+
+            def log_message(self, *args):
+                pass
+
+        server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        server.daemon_threads = True
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        self.addCleanup(server.server_close)
+        self.addCleanup(server.shutdown)
+        for patcher in (
+            mock.patch.object(
+                repology, "API", f"http://127.0.0.1:{server.server_address[1]}"
+            ),
+            mock.patch.object(repology, "RETRY_DELAYS", ()),
+            mock.patch.object(repology, "DEADLINE", 0.3),
+            mock.patch("sys.stderr", io.StringIO()),
+        ):
+            patcher.start()
+            self.addCleanup(patcher.stop)
+
+    def test_a_trickle_is_given_up(self):
+        # 61 bytes at 20 ms each: 1.2 s, against 0.3 s.
+        started = time.monotonic()
+        with self.assertRaises(TimeoutError):
+            repology.get("/slow")
+        self.assertLess(time.monotonic() - started, 1)
+
+    def test_a_steady_answer_arrives(self):
+        self.assertEqual(repology.get("/fast"), json.loads(self.BODY))
