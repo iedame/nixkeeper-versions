@@ -10,12 +10,19 @@ name: "Digest: Repology's nixpkgs projects"
 on:
   schedule:
     - cron: '7 4 * * *'   # daily at 04:07 UTC: done well before 06:00
+  # Also started through the API at the same time from outside GitHub (its
+  # schedule skips runs when busy), with if_older: whichever starts second
+  # finds the digest fresh and stops.
   workflow_dispatch:
     inputs:
       full:
         description: "Read all nixpkgs projects (about an hour), not a seventh"
         type: boolean
         default: false
+      if_older:
+        description: "Only if the last run is older than this many hours (empty: always)"
+        type: string
+        default: ""
 
 # One run at a time: a run waits for the last instead of cancelling it.
 concurrency:
@@ -40,7 +47,14 @@ jobs:
 
       # The runner's Python 3: the digest uses the standard library only.
       - name: Bring the digest up to date
-        run: python3 -m nixkeeper_versions data ${{ inputs.full && '--full' || '' }}
+        run: >-
+          python3 -m nixkeeper_versions data
+          ${{ inputs.full && '--full' || '' }}
+          ${IF_OLDER:+--if-older "$IF_OLDER"}
+        env:
+          # Scheduled runs too: the outside start may have come first. (An
+          # input reaches the shell as a variable, never as code.)
+          IF_OLDER: ${{ github.event_name == 'schedule' && '12' || inputs.if_older }}
 
       - name: Publish the digest if it changed
         run: |
