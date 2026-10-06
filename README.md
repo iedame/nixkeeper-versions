@@ -73,7 +73,8 @@ nix run . -- data
 ```
 
 brings the digest in `data/` up to date (`-- data --full` reads all
-projects). `nix flake check` runs the tests and lint, `nix fmt` formats.
+projects; `--if-older 12` only when the last run is over 12 hours old, so a
+run started twice sweeps once). `nix flake check` runs the tests and lint, `nix fmt` formats.
 
 ## License
 

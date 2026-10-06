@@ -150,6 +150,17 @@ class Main(unittest.TestCase):
         self.assertEqual(sorted(found.projects), ["a", "b", "d"])  # c is gone
         self.assertEqual((meta["caughtUp"], meta["caughtUpRead"]), (1, 1))
 
+    def test_if_older_runs_once(self):
+        day = {"a": [nix("a", "1", "outdated"), other("arch", "2")]}
+        with tempfile.TemporaryDirectory() as d:
+            code, _, first, _ = self.run_main(d, day, "--if-older", "12")
+            self.assertEqual(code, 0)  # no digest yet: a run
+            code, _, again, asked = self.run_main(d, day, "--if-older", "12")
+            self.assertEqual((code, asked), (0, []))  # just ran: nothing read
+            self.assertEqual(again, first)
+            code, _, _, asked = self.run_main(d, day, "--if-older", "0")
+            self.assertNotEqual(asked, [])
+
     def test_too_few_outdated_writes_nothing(self):
         with (
             tempfile.TemporaryDirectory() as d,

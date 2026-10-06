@@ -1,4 +1,5 @@
-"""`python3 -m nixkeeper_versions [DATA_DIR] [--full]`: bring the digest in
+"""`python3 -m nixkeeper_versions [DATA_DIR] [--full] [--if-older HOURS]`:
+bring the digest in
 DATA_DIR (default data/) up to date with Repology. Each run (daily):
 
 1. reads Repology's list of nixpkgs' outdated projects, all of it, as
@@ -12,8 +13,12 @@ DATA_DIR (default data/) up to date with Repology. Each run (daily):
 
 With no digest yet, or --full, step 3 reads all of them at once (about 600
 pages, an hour). Nothing is written when a step fails: the last digest
-stays."""
+stays. --if-older HOURS: only when the last run is older than that (or
+there's none), for a run started twice (by the schedule and by hand or a
+scheduler outside GitHub) to sweep once."""
 
+import json
+import os
 import sys
 import time
 from datetime import UTC, datetime
@@ -29,12 +34,36 @@ MIN_OUTDATED = 5_000
 MIN_PROJECTS = 100_000
 
 
+def last_run_age(directory, now):
+    """Hours since the last run that wrote the digest, or None if none."""
+    try:
+        with open(os.path.join(directory, digest.META)) as f:
+            at = json.load(f).get("outdatedAt")
+    except (FileNotFoundError, ValueError):
+        return None
+    return (now - datetime.fromisoformat(at)).total_seconds() / 3600 if at else None
+
+
 def main(argv=None):
-    argv = sys.argv[1:] if argv is None else argv
+    argv = list(sys.argv[1:] if argv is None else argv)
+    if_older = None
+    if "--if-older" in argv:
+        i = argv.index("--if-older")
+        if_older = float(argv[i + 1])
+        del argv[i : i + 2]
     full = "--full" in argv
     args = [a for a in argv if a != "--full"]
     directory = args[0] if args else "data"
     now = datetime.now(UTC)
+    if if_older is not None:
+        age = last_run_age(directory, now)
+        if age is not None and age < if_older:
+            print(
+                f"The last run was {age:.1f} hours ago (under {if_older:g}): "
+                "nothing to do.",
+                file=sys.stderr,
+            )
+            return 0
     today = now.date().isoformat()
     started = time.monotonic()
     found, meta = digest.read(directory)
