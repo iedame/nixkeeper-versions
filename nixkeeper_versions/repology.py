@@ -5,6 +5,7 @@ one request a second, gzipped, with a User-Agent linking this repository
 project by name."""
 
 import gzip
+import http.client
 import json
 import sys
 import time
@@ -22,6 +23,11 @@ PAUSE = 1.1
 # as Repology says with Retry-After, up to MAX_RETRY_AFTER).
 RETRY_DELAYS = (10, 60)
 MAX_RETRY_AFTER = 300
+# The longest a whole answer may take to arrive, in seconds: urlopen's
+# timeout only bounds each wait for the next bytes, so a server sending a
+# little at a time could hold the run until its job's time limit. Past it,
+# the request has failed (and is retried).
+DEADLINE = 120
 
 _last = 0.0
 requests_made = 0
@@ -33,6 +39,21 @@ def _wait():
     if pause > 0:
         time.sleep(pause)
     _last = time.monotonic()
+
+
+def _read(resp, deadline):
+    """resp's body, read as it arrives; TimeoutError once time.monotonic()
+    is past deadline, however steadily it trickles in."""
+    if not isinstance(resp, http.client.HTTPResponse):
+        return resp.read()  # not from a socket (a test's): nothing to wait for
+    chunks = []
+    while True:
+        if time.monotonic() > deadline:
+            raise TimeoutError("the answer took too long to arrive")
+        chunk = resp.read1(65536)  # what has arrived, without waiting for more
+        if not chunk:
+            return b"".join(chunks)
+        chunks.append(chunk)
 
 
 def get(path):
@@ -48,8 +69,9 @@ def get(path):
         )
         asked = 0
         try:
+            deadline = time.monotonic() + DEADLINE
             with urllib.request.urlopen(req, timeout=120) as resp:
-                body = resp.read()
+                body = _read(resp, deadline)
                 if resp.headers.get("Content-Encoding") == "gzip":
                     body = gzip.decompress(body)
                 return json.loads(body)
