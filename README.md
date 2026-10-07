@@ -48,12 +48,32 @@ On the `data` branch:
   package). A run that can't read it keeps the last (`fetchedAt` says how
   old).
 
+- [`data/emacs.json.gz`](https://raw.githubusercontent.com/iedame/nixkeeper-versions/data/data/emacs.json.gz)
+  (about 95 KB): the newest version of each package in each Emacs package
+  archive nixpkgs' `emacsPackages` are made from (MELPA, MELPA Stable,
+  NonGNU ELPA, GNU ELPA), whose versions Repology mostly can't compare
+  (MELPA's are dates):
+
+  ```json
+  {"format": 1, "fetchedAt": "2026-10-08T04:10:00+00:00",
+   "archives": {"melpa": {"magit": "20251005.508", ...},
+                "melpaStable": {"rtags": "3.23", ...},
+                "nongnu": {"jabber": "0.15.0", ...}, "gnu": {"auctex": "14.2.0", ...}}}
+  ```
+
+  MELPA's versions are the date and time of the commit it built. From the
+  archives' indexes, the ones nixpkgs' update scripts read: four requests a
+  run (MELPA's two as JSON, the ELPAs' as Emacs Lisp data, of which only
+  each entry's name and version are read). A run that can't read all four
+  keeps the last (`fetchedAt` says how old).
+
 - [`data/meta.json`](https://raw.githubusercontent.com/iedame/nixkeeper-versions/data/data/meta.json):
   when the outdated projects were last read (`outdatedAt`), how many there
   are, where the weekly rotation is (`rotation.next`, and `rotation.lapAt`,
   when it last went through all of them), how many projects there are, and
-  how many requests the run made, and when Typst Universe's index was last
-  read and how many packages it had (`typst`).
+  how many requests the run made, and when Typst Universe's index and the
+  Emacs archives were last read and how many packages they had (`typst`,
+  `emacs`).
 
 The `data` branch is `main` plus one commit with the digest: each run replaces
 it, so no history piles up.

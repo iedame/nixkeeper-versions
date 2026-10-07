@@ -10,7 +10,7 @@ import urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from unittest import mock
 
-from nixkeeper_versions import cli, digest, repology, sweep, typst
+from nixkeeper_versions import cli, digest, emacs, repology, sweep, typst
 
 
 def nix(attr, version, status, **extra):
@@ -118,6 +118,7 @@ class Main(unittest.TestCase):
             mock.patch.object(cli, "MIN_OUTDATED", 1),
             mock.patch.object(cli, "MIN_PROJECTS", 1),
             mock.patch.object(typst, "fetch", side_effect=OSError("offline")),
+            mock.patch.object(emacs, "read_archives", side_effect=OSError("offline")),
             mock.patch("sys.stderr", io.StringIO()),
         ):
             code = cli.main([d, *args])
@@ -171,6 +172,9 @@ class Main(unittest.TestCase):
             with (
                 mock.patch.object(repology, "page", side_effect=fake.page),
                 mock.patch.object(typst, "fetch", side_effect=OSError("offline")),
+                mock.patch.object(
+                    emacs, "read_archives", side_effect=OSError("offline")
+                ),
                 mock.patch("sys.stderr", io.StringIO()),
             ):
                 self.assertEqual(cli.main([d]), 1)
