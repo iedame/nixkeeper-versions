@@ -8,6 +8,18 @@
       url = "github:numtide/treefmt-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    # nixkeeper's code for GitHub releases (releases.py): how it reads a
+    # package's source from nixpkgs, works out its tag scheme, orders
+    # versions and asks GitHub, so the digest says what nixkeeper would.
+    nixkeeper = {
+      url = "github:iedame/nixkeeper";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        flake-utils.follows = "flake-utils";
+        treefmt-nix.follows = "treefmt-nix";
+        nix-darwin.inputs.nixpkgs.follows = "nixpkgs";
+      };
+    };
   };
 
   outputs =
@@ -16,6 +28,7 @@
       nixpkgs,
       flake-utils,
       treefmt-nix,
+      nixkeeper,
     }:
     flake-utils.lib.eachDefaultSystem (
       system:
@@ -23,8 +36,9 @@
         pkgs = import nixpkgs { inherit system; };
         inherit (pkgs) lib;
 
-        # The code and its tests: the standard library only, so the workflow
-        # runs it with the runner's own Python.
+        # The code and its tests, run with nixkeeper's source beside them (for
+        # GitHub releases), with the Python packages nixkeeper's modules
+        # import. The rest needs the standard library only.
         src = lib.fileset.toSource {
           root = ./.;
           fileset = lib.fileset.unions [
@@ -32,6 +46,8 @@
             ./tests
           ];
         };
+        python = pkgs.python3.withPackages (ps: [ ps.brotli ]);
+        pythonPath = "${src}:${nixkeeper}";
 
         # `nix fmt` formats everything; checks.formatting fails on anything
         # unformatted. ruff's settings live in pyproject.toml.
@@ -61,24 +77,24 @@
           type = "app";
           program = lib.getExe (
             pkgs.writeShellScriptBin "nixkeeper-versions" ''
-              PYTHONPATH=${src} exec ${lib.getExe pkgs.python3} -m nixkeeper_versions "$@"
+              PYTHONPATH=${pythonPath} exec ${lib.getExe python} -m nixkeeper_versions "$@"
             ''
           );
-          meta.description = "Bring the digest of Repology's nixpkgs projects up to date";
+          meta.description = "Bring the digest of nixpkgs projects' versions up to date";
         };
 
         checks = {
           tests =
             pkgs.runCommand "nixkeeper-versions-tests"
               {
-                nativeBuildInputs = [ pkgs.python3 ];
+                nativeBuildInputs = [ python ];
                 # The deadline tests run a server on 127.0.0.1, which macOS's
                 # sandbox blocks unless asked.
                 __darwinAllowLocalNetworking = true;
               }
               ''
                 cd ${src}
-                python3 -m unittest discover -s tests -t . -v
+                PYTHONPATH=${pythonPath} python3 -m unittest discover -s tests -t . -v
                 touch $out
               '';
           formatting = treefmt.config.build.check self;
@@ -98,10 +114,12 @@
 
         devShells.default = pkgs.mkShell {
           packages = [
-            pkgs.python3
+            python
             treefmt.config.build.wrapper
           ]
           ++ linters;
+          # nixkeeper's source, as the app and the tests have it.
+          shellHook = "export PYTHONPATH=${nixkeeper}\${PYTHONPATH:+:$PYTHONPATH}";
         };
       }
     );

@@ -85,13 +85,37 @@ On the `data` branch:
   own update script reads it). Two requests a run; a run that can't read
   either keeps the last.
 
+- [`data/releases.json.gz`](https://raw.githubusercontent.com/iedame/nixkeeper-versions/data/data/releases.json.gz):
+  for each nixpkgs package fetched from a GitHub tag (about 34,000
+  attributes outside the sets above, 21,000 repositories), its newest
+  version on GitHub, so nixkeeper doesn't depend on Repology for them:
+
+  ```json
+  {"format": 1, "fetchedAt": "...", "evaluatedAt": "...", "revision": "...",
+   "packages": {"whisky": {"repo": "Whisky-App/Whisky", "version": "2.3.5",
+                           "tag": "2.4.0", "release": "2.4.0", "read": "2026-10-08"}, ...},
+   "gone": ["owner/repo", ...]}
+  ```
+
+  `version` is nixpkgs'; `tag` the newest of the repository's tags that
+  match the package's tag scheme (as nixkeeper's update checks work it out
+  from its source: `v2.4.0` for `v2.3.5`), by Repology's version order;
+  `release` its latest release's, when that matches (drafts and
+  pre-releases left out); `read` when the repository was read. Where each
+  package comes from is evaluated from nixpkgs weekly (with Nix and
+  nixkeeper's own code, this flake's input: about a minute); each run reads
+  a seventh of the repositories, so each weekly, plus those never read and
+  those of packages Repology has outdated, 25 a GraphQL query with the
+  workflow's own token. `releases-state.json.gz` keeps what that needs
+  between runs. A run that can't evaluate or reach GitHub keeps the last.
+
 - [`data/meta.json`](https://raw.githubusercontent.com/iedame/nixkeeper-versions/data/data/meta.json):
   when the outdated projects were last read (`outdatedAt`), how many there
   are, where the weekly rotation is (`rotation.next`, and `rotation.lapAt`,
   when it last went through all of them), how many projects there are, and
   how many requests the run made, and when Typst Universe's index, the
-  Emacs archives and Stackage were last read and how many packages they had
-  (`typst`, `emacs`, `stackage`).
+  Emacs archives, Stackage and GitHub were last read and how many packages
+  they had (`typst`, `emacs`, `stackage`, `releases`).
 
 The `data` branch is `main` plus one commit with the digest: each run replaces
 it, so no history piles up.

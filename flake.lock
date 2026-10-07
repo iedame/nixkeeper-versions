@@ -18,6 +18,53 @@
         "type": "github"
       }
     },
+    "nix-darwin": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1786845137,
+        "narHash": "sha256-oQFip+v0luP8NIxJzmiW4Wu8bILsbFWom5l0zonl8hQ=",
+        "owner": "nix-darwin",
+        "repo": "nix-darwin",
+        "rev": "4cff07de74b50e64bdd68cd4e722ab5b6b35ee48",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-darwin",
+        "repo": "nix-darwin",
+        "type": "github"
+      }
+    },
+    "nixkeeper": {
+      "inputs": {
+        "flake-utils": [
+          "flake-utils"
+        ],
+        "nix-darwin": "nix-darwin",
+        "nixpkgs": [
+          "nixpkgs"
+        ],
+        "treefmt-nix": [
+          "treefmt-nix"
+        ]
+      },
+      "locked": {
+        "lastModified": 1791377496,
+        "narHash": "sha256-QCrnEPnW1c3qEoTRi6kEQPGHaITlK36Ww63+mN7bNO0=",
+        "owner": "iedame",
+        "repo": "nixkeeper",
+        "rev": "8b458fa7b785ac59fc5404baf19939e141bd2108",
+        "type": "github"
+      },
+      "original": {
+        "owner": "iedame",
+        "repo": "nixkeeper",
+        "type": "github"
+      }
+    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1790463110,
@@ -37,6 +84,7 @@
     "root": {
       "inputs": {
         "flake-utils": "flake-utils",
+        "nixkeeper": "nixkeeper",
         "nixpkgs": "nixpkgs",
         "treefmt-nix": "treefmt-nix"
       }
