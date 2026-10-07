@@ -6,7 +6,8 @@ name: "Digest: Repology's nixpkgs projects"
 # nixpkgs' projects, so each is read weekly (nixkeeper_versions/cli.py). About
 # 200 requests to Repology's API, one a second; Typst Universe's index, one
 # request (data/typst.json.gz); the Emacs archives' indexes, four
-# (data/emacs.json.gz); Stackage LTS, two (data/stackage.json.gz); and GitHub
+# (data/emacs.json.gz); Stackage LTS, two (data/stackage.json.gz); CRAN and
+# Bioconductor, five (data/cran.json.gz); and GitHub
 # releases (data/releases.json.gz): weekly, an evaluation of nixpkgs for
 # where packages come from (Nix, about a minute), daily a seventh of their
 # repositories, 25 a GraphQL query with the workflow's own token (about 130
@@ -29,6 +30,10 @@ on:
         description: "Only if the last run is older than this many hours (empty: always)"
         type: string
         default: ""
+      sources_only:
+        description: "The other sources only (Typst, Emacs, Stackage, CRAN, GitHub), no Repology"
+        type: boolean
+        default: false
 
 # One run at a time: a run waits for the last instead of cancelling it.
 concurrency:
@@ -60,6 +65,7 @@ jobs:
         run: >-
           nix run . -- data
           ${{ inputs.full && '--full' || '' }}
+          ${{ inputs.sources_only && '--sources-only' || '' }}
           ${IF_OLDER:+--if-older "$IF_OLDER"}
         env:
           # Scheduled runs too: the outside start may have come first. (An

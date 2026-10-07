@@ -10,11 +10,16 @@ import urllib.request
 from . import repology
 
 
-def get(url):
-    """The body at url, as bytes. Raises when it can't be read."""
-    req = urllib.request.Request(
-        url, headers={"User-Agent": repology.USER_AGENT, "Accept-Encoding": "gzip"}
-    )
+def get(url, first_bytes=None):
+    """The body at url, as bytes; with first_bytes, only that many from its
+    start (a Range request, for a line at the top of a big file). Raises
+    when it can't be read."""
+    headers = {"User-Agent": repology.USER_AGENT}
+    if first_bytes:
+        headers["Range"] = f"bytes=0-{first_bytes - 1}"
+    else:
+        headers["Accept-Encoding"] = "gzip"
+    req = urllib.request.Request(url, headers=headers)
     deadline = time.monotonic() + repology.DEADLINE
     with urllib.request.urlopen(req, timeout=120) as resp:
         body = repology._read(resp, deadline)

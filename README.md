@@ -85,6 +85,25 @@ On the `data` branch:
   own update script reads it). Two requests a run; a run that can't read
   either keeps the last.
 
+- [`data/cran.json.gz`](https://raw.githubusercontent.com/iedame/nixkeeper-versions/data/data/cran.json.gz):
+  CRAN's and Bioconductor's packages and versions, which nixpkgs'
+  `rPackages` are generated from: CRAN as it is that day, and
+  Bioconductor's release that nixpkgs pins (read from the top of
+  `bioc-packages.json` on nixpkgs master), its software, annotation and
+  experiment packages:
+
+  ```json
+  {"format": 1, "fetchedAt": "2026-10-08T04:10:00+00:00",
+   "biocVersion": "3.23",
+   "cran": {"ggplot2": "4.0.1", ...}, "bioc": {"AnVIL": "1.24.1", ...},
+   "annotation": {...}, "experiment": {...}}
+  ```
+
+  From their `PACKAGES.gz` index files, as R and nixpkgs' own update script
+  read them: five requests a run. A package nixpkgs has in none of them is
+  no longer on CRAN (archived) or in that Bioconductor release. A run that
+  can't read all of them keeps the last.
+
 - [`data/releases.json.gz`](https://raw.githubusercontent.com/iedame/nixkeeper-versions/data/data/releases.json.gz):
   for each nixpkgs package fetched from a GitHub tag (about 34,000
   attributes outside the sets above, 21,000 repositories), its newest
@@ -114,8 +133,9 @@ On the `data` branch:
   are, where the weekly rotation is (`rotation.next`, and `rotation.lapAt`,
   when it last went through all of them), how many projects there are, and
   how many requests the run made, and when Typst Universe's index, the
-  Emacs archives, Stackage and GitHub were last read and how many packages
-  they had (`typst`, `emacs`, `stackage`, `releases`).
+  Emacs archives, Stackage, CRAN and Bioconductor and GitHub were last read
+  and how many packages they had (`typst`, `emacs`, `stackage`, `cran`,
+  `releases`).
 
 The `data` branch is `main` plus one commit with the digest: each run replaces
 it, so no history piles up.
@@ -152,7 +172,10 @@ nix run . -- data
 
 brings the digest in `data/` up to date (`-- data --full` reads all
 projects; `--if-older 12` only when the last run is over 12 hours old, so a
-run started twice sweeps once). `nix flake check` runs the tests and lint, `nix fmt` formats.
+run started twice sweeps once; `--sources-only` the other sources only,
+Typst, Emacs, Stackage, CRAN and GitHub, with no request to Repology, to
+try them without spending its daily allowance: "sources_only" when
+starting the workflow by hand). `nix flake check` runs the tests and lint, `nix fmt` formats.
 
 ## License
 
