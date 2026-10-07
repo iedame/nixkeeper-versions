@@ -75,6 +75,14 @@ class Digest:
         self.checked.pop(name, None)
 
 
+def write_meta(directory, meta):
+    """Write meta.json alone (a run that read only the other sources)."""
+    os.makedirs(directory, exist_ok=True)
+    with open(os.path.join(directory, META), "w") as f:
+        json.dump({"format": FORMAT, **meta}, f, indent=2, sort_keys=True)
+        f.write("\n")
+
+
 def write(directory, found, meta):
     """Write projects.jsonl.gz and meta.json to directory (and remove the old
     projects.json.gz). The same data gives the same bytes (sorted, mtime 0)."""

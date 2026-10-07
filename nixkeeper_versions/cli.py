@@ -1,11 +1,13 @@
-"""`python3 -m nixkeeper_versions [DATA_DIR] [--full] [--if-older HOURS]`:
+"""`python3 -m nixkeeper_versions [DATA_DIR] [--full] [--if-older HOURS]
+[--sources-only]`:
 bring the digest in
 DATA_DIR (default data/) up to date with Repology, and beside it the
 newest versions of Typst Universe (typst.py) and the Emacs package
-archives (emacs.py), the Stackage LTS nixpkgs follows (stackage.py), and
-GitHub-hosted packages' newest releases and tags (releases.py: weekly
-where they come from, daily a seventh of their repositories): a failed
-read of those keeps their last, without stopping the digest. Each run (daily):
+archives (emacs.py), the Stackage LTS nixpkgs follows (stackage.py), CRAN
+and the Bioconductor release nixpkgs pins (cran.py), and GitHub-hosted
+packages' newest releases and tags (releases.py: weekly where they come
+from, daily a seventh of their repositories): a failed read of those keeps
+their last, without stopping the digest. Each run (daily):
 
 1. reads Repology's list of nixpkgs' outdated projects, all of it, as
    nixpkgs-update does: every outdated package's versions, a day old at
@@ -20,7 +22,9 @@ With no digest yet, or --full, step 3 reads all of them at once (about 600
 pages, an hour). Nothing is written when a step fails: the last digest
 stays. --if-older HOURS: only when the last run is older than that (or
 there's none), for a run started twice (by the schedule and by hand or a
-scheduler outside GitHub) to sweep once."""
+scheduler outside GitHub) to sweep once. --sources-only: the other sources
+only, Repology left alone (no request to it; projects.jsonl.gz as it was),
+for trying them without spending Repology's daily allowance."""
 
 import json
 import os
@@ -28,7 +32,7 @@ import sys
 import time
 from datetime import UTC, datetime
 
-from . import digest, emacs, releases, repology, stackage, sweep, typst
+from . import cran, digest, emacs, releases, repology, stackage, sweep, typst
 
 # All of nixpkgs' projects (about 119,000, 600 pages) over about 7 runs.
 ROTATION_PAGES = 90
@@ -57,7 +61,8 @@ def main(argv=None):
         if_older = float(argv[i + 1])
         del argv[i : i + 2]
     full = "--full" in argv
-    args = [a for a in argv if a != "--full"]
+    sources_only = "--sources-only" in argv
+    args = [a for a in argv if a not in ("--full", "--sources-only")]
     directory = args[0] if args else "data"
     now = datetime.now(UTC)
     if if_older is not None:
@@ -76,6 +81,7 @@ def main(argv=None):
     typst_read = typst.update(directory, now) or meta.get("typst")
     emacs_read = emacs.update(directory, now) or meta.get("emacs")
     stackage_read = stackage.update(directory, now) or meta.get("stackage")
+    cran_read = cran.update(directory, now) or meta.get("cran")
     # The packages the last digest has outdated: their repositories are read
     # daily (whatever Repology does today).
     outdated_before = {
@@ -89,6 +95,18 @@ def main(argv=None):
     releases_read = releases.update(directory, now, outdated_before) or meta.get(
         "releases"
     )
+    if sources_only:
+        read_now = {
+            "typst": typst_read,
+            "emacs": emacs_read,
+            "stackage": stackage_read,
+            "cran": cran_read,
+            "releases": releases_read,
+        }
+        meta = {k: v for k, v in meta.items() if k != "format"}
+        digest.write_meta(directory, meta | {k: v for k, v in read_now.items() if v})
+        print("The other sources only: Repology left alone.", file=sys.stderr)
+        return 0
     before = dict(found.projects)
 
     print("Reading Repology's outdated nixpkgs projects...", file=sys.stderr)
@@ -156,6 +174,7 @@ def main(argv=None):
             **({"typst": typst_read} if typst_read else {}),
             **({"emacs": emacs_read} if emacs_read else {}),
             **({"stackage": stackage_read} if stackage_read else {}),
+            **({"cran": cran_read} if cran_read else {}),
             **({"releases": releases_read} if releases_read else {}),
         },
     )

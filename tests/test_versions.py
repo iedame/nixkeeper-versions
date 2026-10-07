@@ -12,6 +12,7 @@ from unittest import mock
 
 from nixkeeper_versions import (
     cli,
+    cran,
     digest,
     emacs,
     releases,
@@ -132,11 +133,31 @@ class Main(unittest.TestCase):
                 stackage, "read_stackage", side_effect=OSError("offline")
             ),
             mock.patch.object(releases, "update", return_value=None),
+            mock.patch.object(cran, "read_indexes", side_effect=OSError("offline")),
             mock.patch("sys.stderr", io.StringIO()),
         ):
             code = cli.main([d, *args])
         found, meta = digest.read(d)
         return code, found, meta, fake.asked
+
+    def test_sources_only_leaves_repology_alone(self):
+        day = {"a": [nix("a", "1", "outdated"), other("arch", "2")]}
+        with tempfile.TemporaryDirectory() as d:
+            self.run_main(d, day)
+            with open(os.path.join(d, digest.PROJECTS), "rb") as f:
+                projects = f.read()
+            with mock.patch.object(
+                typst,
+                "update",
+                return_value={"at": "2026-10-08T04:10:00+00:00", "packages": 1655},
+            ):
+                code, _, meta, asked = self.run_main(d, day, "--sources-only")
+            self.assertEqual((code, asked), (0, []))  # nothing asked of Repology
+            with open(os.path.join(d, digest.PROJECTS), "rb") as f:
+                self.assertEqual(f.read(), projects)
+        # The other sources' news in meta.json, Repology's as it was.
+        self.assertEqual(meta["typst"]["packages"], 1655)
+        self.assertEqual(meta["outdated"], 1)
 
     def test_two_days(self):
         day1 = {
@@ -192,6 +213,7 @@ class Main(unittest.TestCase):
                     stackage, "read_stackage", side_effect=OSError("offline")
                 ),
                 mock.patch.object(releases, "update", return_value=None),
+                mock.patch.object(cran, "read_indexes", side_effect=OSError("offline")),
                 mock.patch("sys.stderr", io.StringIO()),
             ):
                 self.assertEqual(cli.main([d]), 1)
