@@ -6,7 +6,11 @@ name: "Digest: Repology's nixpkgs projects"
 # nixpkgs' projects, so each is read weekly (nixkeeper_versions/cli.py). About
 # 200 requests to Repology's API, one a second; Typst Universe's index, one
 # request (data/typst.json.gz); the Emacs archives' indexes, four
-# (data/emacs.json.gz); and Stackage LTS, two (data/stackage.json.gz). The data branch is main plus one commit with the
+# (data/emacs.json.gz); Stackage LTS, two (data/stackage.json.gz); and GitHub
+# releases (data/releases.json.gz): weekly, an evaluation of nixpkgs for
+# where packages come from (Nix, about a minute), daily a seventh of their
+# repositories, 25 a GraphQL query with the workflow's own token (about 130
+# points of its 1,000 an hour). The data branch is main plus one commit with the
 # digest (scripts/data-branch.sh).
 
 on:
@@ -47,16 +51,22 @@ jobs:
       - name: Restore the last published digest, on main
         run: bash scripts/data-branch.sh restore
 
-      # The runner's Python 3: the digest uses the standard library only.
+      # Nix: GitHub releases evaluate nixpkgs, with nixkeeper's code (the
+      # flake's input).
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa # v23
+
       - name: Bring the digest up to date
         run: >-
-          python3 -m nixkeeper_versions data
+          nix run . -- data
           ${{ inputs.full && '--full' || '' }}
           ${IF_OLDER:+--if-older "$IF_OLDER"}
         env:
           # Scheduled runs too: the outside start may have come first. (An
           # input reaches the shell as a variable, never as code.)
           IF_OLDER: ${{ github.event_name == 'schedule' && '12' || inputs.if_older }}
+          # GitHub releases' GraphQL queries: public repositories' tags only.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish the digest if it changed
         run: |

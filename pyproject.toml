@@ -1,5 +1,6 @@
-# Settings for ruff (`nix fmt`, and the lint check); the code needs nothing
-# installed: the workflow runs it as `python3 -m nixkeeper_versions`.
+# Settings for ruff (`nix fmt`, and the lint check); nothing is installed
+# from here: the workflow runs the code with `nix run .` (flake.nix), beside
+# nixkeeper's source (GitHub releases use its code).
 [project]
 name = "nixkeeper-versions"
 version = "0.1.0"

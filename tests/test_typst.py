@@ -96,6 +96,7 @@ class InTheRun(unittest.TestCase):
             mock.patch(
                 "nixkeeper_versions.stackage.read_stackage", side_effect=OSError
             ),
+            mock.patch("nixkeeper_versions.releases.update", return_value=None),
             mock.patch("sys.stderr", io.StringIO()),
         ):
             with self.assertRaises(OSError):
