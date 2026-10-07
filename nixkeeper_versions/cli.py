@@ -2,8 +2,8 @@
 bring the digest in
 DATA_DIR (default data/) up to date with Repology, and beside it the
 newest versions of Typst Universe (typst.py) and the Emacs package
-archives (emacs.py): a failed read of those keeps their last, without
-stopping the digest. Each run (daily):
+archives (emacs.py), and the Stackage LTS nixpkgs follows (stackage.py): a
+failed read of those keeps their last, without stopping the digest. Each run (daily):
 
 1. reads Repology's list of nixpkgs' outdated projects, all of it, as
    nixpkgs-update does: every outdated package's versions, a day old at
@@ -26,7 +26,7 @@ import sys
 import time
 from datetime import UTC, datetime
 
-from . import digest, emacs, repology, sweep, typst
+from . import digest, emacs, repology, stackage, sweep, typst
 
 # All of nixpkgs' projects (about 119,000, 600 pages) over about 7 runs.
 ROTATION_PAGES = 90
@@ -73,6 +73,7 @@ def main(argv=None):
     # Their own files: a failed read keeps the last, and the digest goes on.
     typst_read = typst.update(directory, now) or meta.get("typst")
     emacs_read = emacs.update(directory, now) or meta.get("emacs")
+    stackage_read = stackage.update(directory, now) or meta.get("stackage")
     before = dict(found.projects)
 
     print("Reading Repology's outdated nixpkgs projects...", file=sys.stderr)
@@ -139,6 +140,7 @@ def main(argv=None):
             "requests": repology.requests_made,
             **({"typst": typst_read} if typst_read else {}),
             **({"emacs": emacs_read} if emacs_read else {}),
+            **({"stackage": stackage_read} if stackage_read else {}),
         },
     )
     minutes = (time.monotonic() - started) / 60
