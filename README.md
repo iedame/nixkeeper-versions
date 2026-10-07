@@ -33,11 +33,27 @@ On the `data` branch:
   can keep only those it wants while reading: about 25 MB of memory instead
   of 1.4 GB for all of them at once.
 
+- [`data/typst.json.gz`](https://raw.githubusercontent.com/iedame/nixkeeper-versions/data/data/typst.json.gz)
+  (about 17 KB): the newest version of each package on
+  [Typst Universe](https://typst.app/universe/), the source of nixpkgs'
+  `typstPackages`, whose versions Repology mostly can't compare, and the
+  day it was published:
+
+  ```json
+  {"format": 1, "fetchedAt": "2026-10-07T04:10:00+00:00",
+   "packages": {"cetz": {"version": "0.5.2", "released": "2026-05-07"}, ...}}
+  ```
+
+  From Universe's index, one request a run (2.3 MB, every version of every
+  package). A run that can't read it keeps the last (`fetchedAt` says how
+  old).
+
 - [`data/meta.json`](https://raw.githubusercontent.com/iedame/nixkeeper-versions/data/data/meta.json):
   when the outdated projects were last read (`outdatedAt`), how many there
   are, where the weekly rotation is (`rotation.next`, and `rotation.lapAt`,
   when it last went through all of them), how many projects there are, and
-  how many requests the run made.
+  how many requests the run made, and when Typst Universe's index was last
+  read and how many packages it had (`typst`).
 
 The `data` branch is `main` plus one commit with the digest: each run replaces
 it, so no history piles up.

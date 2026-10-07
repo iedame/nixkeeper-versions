@@ -4,8 +4,9 @@ name: "Digest: Repology's nixpkgs projects"
 # up to date with Repology, daily before nixkeeper's sync (06:00 UTC): every
 # outdated nixpkgs project, the ones no longer outdated, and a seventh of all
 # nixpkgs' projects, so each is read weekly (nixkeeper_versions/cli.py). About
-# 200 requests to Repology's API, one a second. The data branch is main plus
-# one commit with the digest (scripts/data-branch.sh).
+# 200 requests to Repology's API, one a second; and Typst Universe's index,
+# one request (data/typst.json.gz). The data branch is main plus one commit
+# with the digest (scripts/data-branch.sh).
 
 on:
   schedule:

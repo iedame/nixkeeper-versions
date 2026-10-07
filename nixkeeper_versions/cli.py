@@ -1,6 +1,8 @@
 """`python3 -m nixkeeper_versions [DATA_DIR] [--full] [--if-older HOURS]`:
 bring the digest in
-DATA_DIR (default data/) up to date with Repology. Each run (daily):
+DATA_DIR (default data/) up to date with Repology, and Typst Universe's
+newest versions beside it (typst.py: a failed read of its index keeps the
+last, without stopping the digest). Each run (daily):
 
 1. reads Repology's list of nixpkgs' outdated projects, all of it, as
    nixpkgs-update does: every outdated package's versions, a day old at
@@ -23,7 +25,7 @@ import sys
 import time
 from datetime import UTC, datetime
 
-from . import digest, repology, sweep
+from . import digest, repology, sweep, typst
 
 # All of nixpkgs' projects (about 119,000, 600 pages) over about 7 runs.
 ROTATION_PAGES = 90
@@ -67,6 +69,8 @@ def main(argv=None):
     today = now.date().isoformat()
     started = time.monotonic()
     found, meta = digest.read(directory)
+    # Its own file: a failed read keeps the last, and the digest goes on.
+    typst_read = typst.update(directory, now) or meta.get("typst")
     before = dict(found.projects)
 
     print("Reading Repology's outdated nixpkgs projects...", file=sys.stderr)
@@ -131,6 +135,7 @@ def main(argv=None):
             "rotation": rotation,
             "projects": len(found.projects),
             "requests": repology.requests_made,
+            **({"typst": typst_read} if typst_read else {}),
         },
     )
     minutes = (time.monotonic() - started) / 60
