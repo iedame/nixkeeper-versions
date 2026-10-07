@@ -92,6 +92,7 @@ class InTheRun(unittest.TestCase):
             mock.patch.object(typst, "fetch", return_value=INDEX),
             mock.patch.object(typst, "MIN_PACKAGES", 1),
             mock.patch.object(repology, "page", side_effect=OSError("down")),
+            mock.patch("nixkeeper_versions.emacs.read_archives", side_effect=OSError),
             mock.patch("sys.stderr", io.StringIO()),
         ):
             with self.assertRaises(OSError):

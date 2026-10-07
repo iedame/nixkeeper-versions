@@ -13,12 +13,10 @@ import gzip
 import json
 import os
 import sys
-import time
 import urllib.error
-import urllib.request
 from datetime import UTC, datetime
 
-from . import repology
+from . import download
 
 INDEX = "https://packages.typst.org/preview/index.json"
 FILE = "typst.json.gz"
@@ -31,16 +29,7 @@ MIN_PACKAGES = 1000
 def fetch():
     """Typst Universe's index: every version of every package, as a list of
     {"name", "version", "updatedAt", ...}. Raises when it can't be read."""
-    req = urllib.request.Request(
-        INDEX,
-        headers={"User-Agent": repology.USER_AGENT, "Accept-Encoding": "gzip"},
-    )
-    deadline = time.monotonic() + repology.DEADLINE
-    with urllib.request.urlopen(req, timeout=120) as resp:
-        body = repology._read(resp, deadline)
-        if resp.headers.get("Content-Encoding") == "gzip":
-            body = gzip.decompress(body)
-    return json.loads(body)
+    return json.loads(download.get(INDEX))
 
 
 def version_key(version):
