@@ -52,11 +52,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1791377496,
-        "narHash": "sha256-QCrnEPnW1c3qEoTRi6kEQPGHaITlK36Ww63+mN7bNO0=",
+        "lastModified": 1791381417,
+        "narHash": "sha256-7h9oXAZDcpKzf5RFQxKb4qGJQ4018j8VOs7uVZNtqio=",
         "owner": "iedame",
         "repo": "nixkeeper",
-        "rev": "8b458fa7b785ac59fc5404baf19939e141bd2108",
+        "rev": "8c28903904a06afebe7e892b82c9795abc777118",
         "type": "github"
       },
       "original": {
