@@ -67,13 +67,31 @@ On the `data` branch:
   each entry's name and version are read). A run that can't read all four
   keeps the last (`fetchedAt` says how old).
 
+- [`data/stackage.json.gz`](https://raw.githubusercontent.com/iedame/nixkeeper-versions/data/data/stackage.json.gz)
+  (about 25 KB): the Stackage LTS series nixpkgs pins about 3,400 of its
+  `haskellPackages` to, and that series' newest version of each: for
+  those, the version to be at, not Hackage's newest (Stackage holds newer
+  ones back until its next series):
+
+  ```json
+  {"format": 1, "fetchedAt": "2026-10-08T04:10:00+00:00",
+   "series": "lts-24", "nixpkgs": "lts-24.38", "snapshot": "lts-24.62",
+   "versions": {"aeson": "2.2.5.1", ...}}
+  ```
+
+  Which series, and which packages, from `stackage.yaml` on nixpkgs master
+  (its first line: "# Stackage LTS 24.38"); the versions from that
+  series' newest snapshot on stackage.org (its `cabal.config`, as nixpkgs'
+  own update script reads it). Two requests a run; a run that can't read
+  either keeps the last.
+
 - [`data/meta.json`](https://raw.githubusercontent.com/iedame/nixkeeper-versions/data/data/meta.json):
   when the outdated projects were last read (`outdatedAt`), how many there
   are, where the weekly rotation is (`rotation.next`, and `rotation.lapAt`,
   when it last went through all of them), how many projects there are, and
-  how many requests the run made, and when Typst Universe's index and the
-  Emacs archives were last read and how many packages they had (`typst`,
-  `emacs`).
+  how many requests the run made, and when Typst Universe's index, the
+  Emacs archives and Stackage were last read and how many packages they had
+  (`typst`, `emacs`, `stackage`).
 
 The `data` branch is `main` plus one commit with the digest: each run replaces
 it, so no history piles up.

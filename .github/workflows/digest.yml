@@ -5,8 +5,8 @@ name: "Digest: Repology's nixpkgs projects"
 # outdated nixpkgs project, the ones no longer outdated, and a seventh of all
 # nixpkgs' projects, so each is read weekly (nixkeeper_versions/cli.py). About
 # 200 requests to Repology's API, one a second; Typst Universe's index, one
-# request (data/typst.json.gz); and the Emacs archives' indexes, four
-# (data/emacs.json.gz). The data branch is main plus one commit with the
+# request (data/typst.json.gz); the Emacs archives' indexes, four
+# (data/emacs.json.gz); and Stackage LTS, two (data/stackage.json.gz). The data branch is main plus one commit with the
 # digest (scripts/data-branch.sh).
 
 on:
