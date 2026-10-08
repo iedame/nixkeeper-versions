@@ -128,6 +128,28 @@ On the `data` branch:
   workflow's own token. `releases-state.json.gz` keeps what that needs
   between runs. A run that can't evaluate or reach GitHub keeps the last.
 
+- [`data/nixpkgs.json.gz`](https://raw.githubusercontent.com/iedame/nixkeeper-versions/data/data/nixpkgs.json.gz):
+  nixpkgs' own facts about its packages, for readers without Nix (such as
+  [nixkeeper-vulnerabilities](https://github.com/iedame/nixkeeper-vulnerabilities),
+  which matches packages to advisories by registry name and version, and
+  by source repository and tag or commit):
+
+  ```json
+  {"format": 1, "indexedAt": "...", "revision": "...",
+   "evaluatedAt": "...", "evaluatedRevision": "...",
+   "packages": {"python313Packages.requests": {"pname": "requests", "version": "2.32.5"},
+                "ripgrep": {"pname": "ripgrep", "version": "15.1.0",
+                            "src": {"gitRepoUrl": "https://github.com/BurntSushi/ripgrep.git",
+                                    "tag": "15.1.0", "url": "..."}}, ...}}
+  ```
+
+  Every attribute's `pname` and `version`, from the channel's package
+  index (read daily, `revision` its commit); and `src`, where its source
+  comes from (the fields it has of `gitRepoUrl`, `tag`, `rev`, `url`), for
+  the attributes the weekly evaluation above covers (outside the sets
+  nixkeeper compares with their own sources). A run that can't read the
+  index keeps the last.
+
 - [`data/meta.json`](https://raw.githubusercontent.com/iedame/nixkeeper-versions/data/data/meta.json):
   when the outdated projects were last read (`outdatedAt`), how many there
   are, where the weekly rotation is (`rotation.next`, and `rotation.lapAt`,
@@ -135,7 +157,8 @@ On the `data` branch:
   how many requests the run made, and when Typst Universe's index, the
   Emacs archives, Stackage, CRAN and Bioconductor and GitHub were last read
   and how many packages they had (`typst`, `emacs`, `stackage`, `cran`,
-  `releases`).
+  `releases`), and when nixpkgs' index was read and its sources evaluated,
+  with how many attributes and sources (`nixpkgs`).
 
 The `data` branch is `main` plus one commit with the digest: each run replaces
 it, so no history piles up.

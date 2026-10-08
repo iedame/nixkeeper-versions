@@ -6,7 +6,9 @@ newest versions of Typst Universe (typst.py) and the Emacs package
 archives (emacs.py), the Stackage LTS nixpkgs follows (stackage.py), CRAN
 and the Bioconductor release nixpkgs pins (cran.py), and GitHub-hosted
 packages' newest releases and tags (releases.py: weekly where they come
-from, daily a seventh of their repositories): a failed read of those keeps
+from, daily a seventh of their repositories), and nixpkgs' own facts for
+readers without Nix (packages.py: every attribute's pname and version,
+and the sources releases.py evaluated): a failed read of those keeps
 their last, without stopping the digest. Each run (daily):
 
 1. reads Repology's list of nixpkgs' outdated projects, all of it, as
@@ -32,7 +34,7 @@ import sys
 import time
 from datetime import UTC, datetime
 
-from . import cran, digest, emacs, releases, repology, stackage, sweep, typst
+from . import cran, digest, emacs, packages, releases, repology, stackage, sweep, typst
 
 # All of nixpkgs' projects (about 119,000, 600 pages) over about 7 runs.
 ROTATION_PAGES = 90
@@ -92,9 +94,15 @@ def main(argv=None):
         and e.get("status") == "outdated"
         and e.get("srcname")
     }
-    releases_read = releases.update(directory, now, outdated_before) or meta.get(
-        "releases"
-    )
+    evaluated = []
+    releases_read = releases.update(
+        directory, now, outdated_before, lambda *found: evaluated.append(found)
+    ) or meta.get("releases")
+    # nixpkgs' facts for readers without Nix: the index daily, the sources
+    # releases.py evaluated (weekly).
+    nixpkgs_read = packages.update(
+        directory, now, evaluated[0] if evaluated else None
+    ) or meta.get("nixpkgs")
     if sources_only:
         read_now = {
             "typst": typst_read,
@@ -102,6 +110,7 @@ def main(argv=None):
             "stackage": stackage_read,
             "cran": cran_read,
             "releases": releases_read,
+            "nixpkgs": nixpkgs_read,
         }
         meta = {k: v for k, v in meta.items() if k != "format"}
         digest.write_meta(directory, meta | {k: v for k, v in read_now.items() if v})
@@ -176,6 +185,7 @@ def main(argv=None):
             **({"stackage": stackage_read} if stackage_read else {}),
             **({"cran": cran_read} if cran_read else {}),
             **({"releases": releases_read} if releases_read else {}),
+            **({"nixpkgs": nixpkgs_read} if nixpkgs_read else {}),
         },
     )
     minutes = (time.monotonic() - started) / 60
