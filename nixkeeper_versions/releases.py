@@ -80,10 +80,11 @@ def in_bulk_set(attr):
     )
 
 
-def evaluate(revision, attrs):
+def evaluate(revision, attrs, sources=None):
     """{attr: {"repo", "tags", "version"}} for the attrs fetched from a GitHub
     tag, with the pattern their tags must match (inferred.github_check): src
-    evaluated at revision, CHUNK attributes at a time. Raises
+    evaluated at revision, CHUNK attributes at a time; every attr's src goes
+    into sources too, when given (packages.py publishes them). Raises
     nixpkgs.EvalError when nixpkgs doesn't evaluate."""
     found = {}
     attrs = sorted(attrs)
@@ -93,6 +94,8 @@ def evaluate(revision, attrs):
             f"  evaluating {start + len(part):,} of {len(attrs):,}...", file=sys.stderr
         )
         for attr, src in nixpkgs.sources(part, revision).items():
+            if sources is not None:
+                sources[attr] = src
             check, _ = inferred.github_check(src, attr)
             if check:
                 found[attr] = {
@@ -237,10 +240,12 @@ def outdated_keys(state, outdated_attrs):
     return {key(checks[a]) for a in outdated_attrs if a in checks}
 
 
-def update(directory, now, outdated_attrs=()):
+def update(directory, now, outdated_attrs=(), on_evaluated=None):
     """Bring releases.json.gz up to date: {"at", "packages", "read", ...}
     for meta.json, or None when nothing could be done (no evaluation yet
-    and none possible, or no token): the last files stay."""
+    and none possible, or no token): the last files stay. When it evaluates
+    where packages come from (weekly), on_evaluated(revision, {attr: src})
+    gets every package's src (packages.update)."""
     state = read_state(directory)
     evaluated = state.get("evaluatedAt")
     if not evaluated or now - datetime.fromisoformat(evaluated) >= EVALUATE_EVERY:
@@ -248,7 +253,8 @@ def update(directory, now, outdated_attrs=()):
         try:
             revision = nixpkgs.channel_revision()
             attrs = [a for a in nixpkgs.load_index() if not in_bulk_set(a)]
-            checks = evaluate(revision, attrs)
+            sources = {}
+            checks = evaluate(revision, attrs, sources)
             if len(checks) < MIN_CHECKS:
                 raise ValueError(
                     f"only {len(checks):,} packages with a GitHub tag check "
@@ -262,6 +268,8 @@ def update(directory, now, outdated_attrs=()):
             print(
                 f"  {len(checks):,} packages with a GitHub tag check", file=sys.stderr
             )
+            if on_evaluated:
+                on_evaluated(revision, sources)
         except (nixpkgs.EvalError, urllib.error.URLError, OSError, ValueError) as e:
             print(f"::warning::GitHub releases: no evaluation ({e})", file=sys.stderr)
             if not state.get("checks"):
