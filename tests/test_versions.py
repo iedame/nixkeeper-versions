@@ -220,6 +220,72 @@ class Main(unittest.TestCase):
             self.assertEqual(digest.read(d)[1], {})
 
 
+class Moved(unittest.TestCase):
+    def test_found_by_attribute_once_each(self):
+        found = digest.Digest({"a": [nix("a", "1", "newest")]}, {"a": "2026-10-08"})
+        answers = {
+            "urlencode": ("urlencode-dead10ck", [nix("urlencode", "1.0.1", "newest")]),
+            # One project for both attributes: asked once.
+            "foo": (
+                "foo-project",
+                [nix("foo", "2", "newest"), nix("foo2", "2", "newest")],
+            ),
+            "gone": (None, None),  # removed from nixpkgs too
+        }
+        asked = []
+
+        def lookup(attr):
+            asked.append(attr)
+            return answers[attr]
+
+        with (
+            mock.patch.object(repology, "project_for_attr", side_effect=lookup),
+            mock.patch("sys.stderr", io.StringIO()),
+        ):
+            moved, n = cli.find_moved(
+                found, {"urlencode", "foo", "foo2", "gone", "a"}, "2026-10-09"
+            )
+        self.assertEqual(
+            moved, {"urlencode": "urlencode-dead10ck", "foo": "foo-project"}
+        )
+        self.assertEqual(asked, ["foo", "gone", "urlencode"])  # not a, nor foo2
+        self.assertEqual(n, 3)
+        self.assertEqual(found.checked["urlencode-dead10ck"], "2026-10-09")
+
+    def test_a_failure_stops_the_step_not_the_run(self):
+        found = digest.Digest()
+        with (
+            mock.patch.object(
+                repology, "project_for_attr", side_effect=OSError("down")
+            ),
+            mock.patch("sys.stderr", io.StringIO()),
+        ):
+            self.assertEqual(cli.find_moved(found, {"a", "b"}, "2026-10-09"), ({}, 1))
+
+    def test_main_looks_for_what_disappeared(self):
+        # Outdated yesterday; today Repology has no such project (renamed).
+        day1 = {
+            "urlencode": [nix("urlencode", "1.0.1", "outdated"), other("arch", "1.6.0")]
+        }
+        with tempfile.TemporaryDirectory() as d:
+            Main.run_main(self, d, day1)
+            with mock.patch.object(
+                repology,
+                "project_for_attr",
+                return_value=(
+                    "urlencode-dead10ck",
+                    [nix("urlencode", "1.0.1", "newest")],
+                ),
+            ) as lookup:
+                code, found, meta, _ = Main.run_main(
+                    self, d, {"other": [nix("o", "1", "outdated"), other("arch", "2")]}
+                )
+        self.assertEqual(code, 0)
+        lookup.assert_called_once_with("urlencode")
+        self.assertIn("urlencode-dead10ck", found.projects)
+        self.assertEqual(meta["moved"], {"asked": 1, "found": 1})
+
+
 class Get(unittest.TestCase):
     def response(self, body):
         resp = mock.MagicMock()
@@ -248,6 +314,22 @@ class Get(unittest.TestCase):
             self.assertEqual(repology.get("/x"), {"a": []})
             self.assertIsNone(repology.get("/y"))
         self.assertIn(30, sleeps)  # Repology's Retry-After, over the 10 s planned
+
+    def test_project_for_attr_follows_the_redirect(self):
+        resp = self.response([nix("urlencode", "1.0.1", "newest")])
+        resp.__enter__.return_value.geturl.return_value = (
+            "https://repology.org/api/v1/project/urlencode-dead10ck"
+        )
+        with mock.patch("urllib.request.urlopen", return_value=resp) as urlopen:
+            name, entries = repology.project_for_attr("urlencode")
+        self.assertEqual(name, "urlencode-dead10ck")
+        self.assertEqual(entries[0]["srcname"], "urlencode")
+        self.assertIn("name_type=srcname", urlopen.call_args.args[0].full_url)
+        with (
+            mock.patch("urllib.request.urlopen", side_effect=self.error(404)),
+            mock.patch("sys.stderr", io.StringIO()),
+        ):
+            self.assertEqual(repology.project_for_attr("gone"), (None, None))
 
     def test_user_agent_and_gzip(self):
         with mock.patch(

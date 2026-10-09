@@ -1,8 +1,9 @@
 """Asking Repology's API (https://repology.org/api), as its rules ask: at most
 one request a second, gzipped, with a User-Agent linking this repository
 (and so its issue tracker). Only nixpkgs' projects (inrepo=nix_unstable):
-200 to a page, in name order, from a given name on (inclusive); or one
-project by name."""
+200 to a page, in name order, from a given name on (inclusive); one
+project by name; or the project of a nixpkgs attribute (Repology's
+project-by tool, which redirects to it)."""
 
 import gzip
 import http.client
@@ -14,6 +15,7 @@ import urllib.parse
 import urllib.request
 
 API = "https://repology.org/api/v1"
+TOOLS = "https://repology.org/tools"
 NIX_REPO = "nix_unstable"
 USER_AGENT = "nixkeeper-versions (+https://github.com/iedame/nixkeeper-versions)"
 # Seconds from one request's start to the next's: Repology allows one a
@@ -60,12 +62,18 @@ def get(path):
     """The JSON at path under the API, or None on 404. A failed request is
     retried after RETRY_DELAYS (longer if Repology asks, with Retry-After,
     up to MAX_RETRY_AFTER); raises once every attempt failed."""
+    return _get(API + path)[0]
+
+
+def _get(url):
+    """(the JSON at url, the address it came from after any redirect), or
+    (None, None) on 404; as get."""
     global requests_made
     for attempt in range(len(RETRY_DELAYS) + 1):
         _wait()
         requests_made += 1
         req = urllib.request.Request(
-            API + path, headers={"User-Agent": USER_AGENT, "Accept-Encoding": "gzip"}
+            url, headers={"User-Agent": USER_AGENT, "Accept-Encoding": "gzip"}
         )
         asked = 0
         try:
@@ -74,18 +82,18 @@ def get(path):
                 body = _read(resp, deadline)
                 if resp.headers.get("Content-Encoding") == "gzip":
                     body = gzip.decompress(body)
-                return json.loads(body)
+                return json.loads(body), resp.geturl()
         except urllib.error.HTTPError as e:
             e.close()
             if e.code == 404:
-                return None
+                return None, None
             retry_after = e.headers.get("Retry-After") or ""
             if retry_after.isdigit() and int(retry_after) <= MAX_RETRY_AFTER:
                 asked = int(retry_after)
             error = e
         except (urllib.error.URLError, OSError, ValueError) as e:
             error = e
-        print(f"  Repology ({path}): {error}", file=sys.stderr)
+        print(f"  Repology ({url}): {error}", file=sys.stderr)
         if attempt < len(RETRY_DELAYS):
             delay = max(RETRY_DELAYS[attempt], asked)
             print(f"  retrying in {delay}s...", file=sys.stderr)
@@ -107,3 +115,22 @@ def page(start, outdated=False):
 def project(name):
     """A project's entries, or None if Repology has no such project."""
     return get(f"/project/{urllib.parse.quote(name, safe='')}")
+
+
+def project_for_attr(attr):
+    """(project, entries) of the project with nixpkgs' attribute attr, or
+    (None, None) when Repology has none: what to look for when a project
+    disappears (Repology renamed or split it: urlencode became
+    urlencode-dead10ck on 2026-10-08)."""
+    query = urllib.parse.urlencode(
+        {
+            "repo": NIX_REPO,
+            "name_type": "srcname",
+            "target_page": "api_v1_project",
+            "name": attr,
+        }
+    )
+    entries, url = _get(f"{TOOLS}/project-by?{query}")
+    if not entries or not url:
+        return None, None
+    return urllib.parse.unquote(url.rstrip("/").rsplit("/", 1)[-1]), entries

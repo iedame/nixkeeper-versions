@@ -153,7 +153,9 @@ On the `data` branch:
 - [`data/meta.json`](https://raw.githubusercontent.com/iedame/nixkeeper-versions/data/data/meta.json):
   when the outdated projects were last read (`outdatedAt`), how many there
   are, where the weekly rotation is (`rotation.next`, and `rotation.lapAt`,
-  when it last went through all of them), how many projects there are, and
+  when it last went through all of them), the dropped projects' attributes
+  looked up again and found in another project (`moved`: `asked`,
+  `found`), how many projects there are, and
   how many requests the run made, and when Typst Universe's index, the
   Emacs archives, Stackage, CRAN and Bioconductor and GitHub were last read
   and how many packages they had (`typst`, `emacs`, `stackage`, `cran`,
@@ -180,6 +182,15 @@ sync:
    vulnerabilities on versions that aren't outdated (Repology has no list
    of those) are at most a week old. A project that's no longer there is
    dropped.
+4. **Renamed projects, the same day**: for each nixpkgs attribute of a
+   project dropped in steps 2 and 3 that no project has any more, Repology
+   is asked which project it's in now, one request each (its `project-by`
+   tool, up to 200). Repology renames or splits projects now and then
+   (2026-10-08: `urlencode` became `urlencode-dead10ck`, the old name kept
+   by another program): without this, the attribute would be missing until
+   the rotation reached the new name, up to a week, and nixkeeper would keep
+   the old project's versions meanwhile. An attribute removed from nixpkgs
+   costs one request that finds nothing.
 
 The first run, with no digest yet, reads all projects at once (about 600
 requests, an hour); so does starting the workflow by hand with "full". A
