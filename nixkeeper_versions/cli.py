@@ -18,7 +18,11 @@ their last, without stopping the digest. Each run (daily):
    are (updated in nixpkgs, most of them), up to MAX_SINGLE;
 3. reads the next ROTATION_PAGES pages of all nixpkgs' projects, going on
    where the last run stopped, so every project (up-to-date ones' other
-   repositories, legacy versions, vulnerabilities) is read once a week.
+   repositories, legacy versions, vulnerabilities) is read once a week;
+4. finds where the nixpkgs attributes of the projects that disappeared in
+   steps 2 and 3 went (Repology renamed or split them), up to MAX_MOVED:
+   one request each, by attribute, so a rename is caught the same day
+   rather than when the rotation reaches the new name.
 
 With no digest yet, or --full, step 3 reads all of them at once (about 600
 pages, an hour). Nothing is written when a step fails: the last digest
@@ -39,6 +43,7 @@ from . import cran, digest, emacs, packages, releases, repology, stackage, sweep
 # All of nixpkgs' projects (about 119,000, 600 pages) over about 7 runs.
 ROTATION_PAGES = 90
 MAX_SINGLE = 400
+MAX_MOVED = 200
 # Fewer than this many outdated projects (about 13,000), or projects in all,
 # means Repology answered wrong: nothing is written.
 MIN_OUTDATED = 5_000
@@ -53,6 +58,41 @@ def last_run_age(directory, now):
     except (FileNotFoundError, ValueError):
         return None
     return (now - datetime.fromisoformat(at)).total_seconds() / 3600 if at else None
+
+
+def nix_attrs(entries):
+    """The nixpkgs attributes a project's entries have."""
+    return {
+        e["srcname"]
+        for e in entries or []
+        if e["repo"] == digest.NIX_REPO and e.get("srcname")
+    }
+
+
+def find_moved(found, attrs, today):
+    """Look up, by attribute, where attrs went (those no project in found has
+    any more), at most MAX_MOVED; put the projects found. Returns
+    ({attr: its project now}, how many were asked). A failed lookup stops
+    the step (the rotation finds them later), not the run."""
+    have = set()
+    for entries in found.projects.values():
+        have |= nix_attrs(entries)
+    wanted = sorted(set(attrs) - have)[:MAX_MOVED]
+    moved, asked = {}, 0
+    for attr in wanted:
+        if attr in have:  # found with another attribute's project
+            continue
+        asked += 1
+        try:
+            name, entries = repology.project_for_attr(attr)
+        except (OSError, ValueError) as e:
+            print(f"::warning::Finding moved projects stopped: {e}", file=sys.stderr)
+            break
+        if name and digest.has_nix(digest.trimmed(entries)):
+            found.put(name, entries, today)
+            have |= nix_attrs(entries)
+            moved[attr] = name
+    return moved, asked
 
 
 def main(argv=None):
@@ -137,8 +177,13 @@ def main(argv=None):
     )
     asked = caught_up[:MAX_SINGLE]
     print(f"Reading {len(asked):,} projects no longer outdated...", file=sys.stderr)
+    # The nixpkgs attributes of projects that disappear: where they went is
+    # looked for at the end (find_moved).
+    vanished = set()
     for name in asked:
         entries = repology.project(name)
+        if entries is None or not digest.has_nix(digest.trimmed(entries)):
+            vanished |= nix_attrs(before.get(name))
         if entries is None:
             found.drop(name)
         else:
@@ -157,7 +202,15 @@ def main(argv=None):
         n for n in found.projects if sweep.in_range(n, start, end) and n not in read
     ]
     for name in gone:
+        vanished |= nix_attrs(found.projects.get(name))
         found.drop(name)
+    moved, moved_asked = find_moved(found, vanished, today)
+    if moved:
+        print(
+            "Moved on Repology: "
+            + ", ".join(f"{a} -> {p}" for a, p in sorted(moved.items())),
+            file=sys.stderr,
+        )
     rotation["next"] = end or ""
     if end is None:
         rotation["lapAt"] = now.isoformat(timespec="seconds")
@@ -178,6 +231,7 @@ def main(argv=None):
             "caughtUp": len(caught_up),
             "caughtUpRead": len(asked),
             "rotation": rotation,
+            "moved": {"asked": moved_asked, "found": len(moved)},
             "projects": len(found.projects),
             "requests": repology.requests_made,
             **({"typst": typst_read} if typst_read else {}),
