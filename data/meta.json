@@ -1,0 +1,53 @@
+{
+  "caughtUp": 3,
+  "caughtUpRead": 3,
+  "cran": {
+    "annotation": 928,
+    "at": "2026-10-10T04:15:33+00:00",
+    "bioc": 2385,
+    "biocVersion": "3.23",
+    "cran": 25381,
+    "experiment": 434
+  },
+  "emacs": {
+    "at": "2026-10-10T04:15:33+00:00",
+    "gnu": 508,
+    "melpa": 6331,
+    "melpaStable": 3488,
+    "nongnu": 291
+  },
+  "format": 1,
+  "moved": {
+    "asked": 0,
+    "found": 0
+  },
+  "nixpkgs": {
+    "evaluatedAt": null,
+    "indexedAt": "2026-10-10T04:15:33+00:00",
+    "packages": 150917,
+    "sources": 0
+  },
+  "outdated": 13995,
+  "outdatedAt": "2026-10-10T04:15:33+00:00",
+  "projects": 119109,
+  "releases": {
+    "at": "2026-10-10T04:15:33+00:00",
+    "evaluatedAt": "2026-10-07T14:35:34+00:00",
+    "packages": 33816,
+    "read": 5975
+  },
+  "requests": 164,
+  "rotation": {
+    "lapAt": "2026-10-08T02:59:38+00:00",
+    "next": "haskell:ui"
+  },
+  "stackage": {
+    "at": "2026-10-10T04:15:33+00:00",
+    "packages": 3367,
+    "snapshot": "lts-24.62"
+  },
+  "typst": {
+    "at": "2026-10-10T04:15:33+00:00",
+    "packages": 1665
+  }
+}
