@@ -10,15 +10,15 @@ Two parts, with nixkeeper's own code (its flake input):
    minutes for every package), and from it the tag check nixkeeper's
    update checks would work out (nixkeeper.inferred.github_check): the
    repository, and the tag scheme as a pattern. Needs Nix.
-2. Each run, every repository, so a release shows the next day: those
+2. Each run, every repository, so a release shows within 12 hours: those
    never read first, then those of packages Repology calls outdated, then
    the rest, the longest unread first (a run GitHub cuts short, its token
    low on points, leaves the newest read for the next). One GraphQL query
    per BATCH repositories, each one's newest tags by commit date and its
    latest release (drafts and pre-releases left out): about 860 queries
-   and points on 2026-10-11, 37 minutes; with NIXKEEPER_VERSIONS_TOKEN (a
-   personal token's 5,000 points an hour), else the workflow's own
-   (1,000: enough, barely).
+   and points on 2026-10-11, an hour (62 minutes); with
+   NIXKEEPER_VERSIONS_TOKEN (a personal token's 5,000 points an hour),
+   else the workflow's own (1,000: enough, barely).
 
 Kept between runs in releases-state.json.gz (where each package comes
 from, what each repository had); written for nixkeeper as

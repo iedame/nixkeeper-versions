@@ -6,14 +6,14 @@ newest versions of Typst Universe (typst.py) and the Emacs package
 archives (emacs.py), the Stackage LTS nixpkgs follows (stackage.py), CRAN
 and the Bioconductor release nixpkgs pins (cran.py), and GitHub-hosted
 packages' newest releases and tags (releases.py: weekly where they come
-from, daily every one of their repositories), and nixpkgs' own facts for
+from, each run every one of their repositories), and nixpkgs' own facts for
 readers without Nix (packages.py: every attribute's pname and version,
 and the sources releases.py evaluated): a failed read of those keeps
-their last, without stopping the digest. Each run (daily):
+their last, without stopping the digest. Each run (every 12 hours):
 
 1. reads Repology's list of nixpkgs' outdated projects, all of it, as
-   nixpkgs-update does: every outdated package's versions, a day old at
-   most;
+   nixpkgs-update does: every outdated package's versions, 12 hours old
+   at most;
 2. reads again, one by one, the projects that were outdated and no longer
    are (updated in nixpkgs, most of them), up to MAX_SINGLE;
 3. reads the next ROTATION_PAGES pages of all nixpkgs' projects, going on
@@ -23,6 +23,10 @@ their last, without stopping the digest. Each run (daily):
    steps 2 and 3 went (Repology renamed or split them), up to MAX_MOVED:
    one request each, by attribute, so a rename is caught the same day
    rather than when the rotation reaches the new name.
+
+Two runs a day stay under Repology's 1,000 requests a day whatever happens:
+at most about 70 + MAX_SINGLE + ROTATION_PAGES + MAX_MOVED a run (465);
+about 650 a day as measured (2026-10-11).
 
 With no digest yet, or --full, step 3 reads all of them at once (about 600
 pages, an hour). Nothing is written when a step fails: the last digest
@@ -40,10 +44,12 @@ from datetime import UTC, datetime
 
 from . import cran, digest, emacs, packages, releases, repology, stackage, sweep, typst
 
-# All of nixpkgs' projects (about 119,000, 600 pages) over about 7 runs.
-ROTATION_PAGES = 90
-MAX_SINGLE = 400
-MAX_MOVED = 200
+# All of nixpkgs' projects (about 119,000, 600 pages) over about 14 runs, a
+# week of two a day; and at most so many single requests a run (the rest
+# wait for the next, 12 hours later).
+ROTATION_PAGES = 45
+MAX_SINGLE = 250
+MAX_MOVED = 100
 # Fewer than this many outdated projects (about 13,000), or projects in all,
 # means Repology answered wrong: nothing is written.
 MIN_OUTDATED = 5_000
@@ -125,7 +131,7 @@ def main(argv=None):
     stackage_read = stackage.update(directory, now) or meta.get("stackage")
     cran_read = cran.update(directory, now) or meta.get("cran")
     # The packages the last digest has outdated: their repositories are read
-    # daily (whatever Repology does today).
+    # first (whatever Repology does today).
     outdated_before = {
         e["srcname"]
         for entries in found.projects.values()

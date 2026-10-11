@@ -1,29 +1,31 @@
 name: "Digest: Repology's nixpkgs projects"
 
 # Keeps the digest (the data branch: data/projects.jsonl.gz and data/meta.json)
-# up to date with Repology, daily before nixkeeper's sync (06:00 UTC): every
-# outdated nixpkgs project, the ones no longer outdated, and a seventh of all
-# nixpkgs' projects, so each is read weekly (nixkeeper_versions/cli.py). About
-# 200 requests to Repology's API, one a second; Typst Universe's index, one
+# up to date with Repology, every 12 hours, each run done before one of
+# nixkeeper's syncs (06:15 and 18:15 UTC): every outdated nixpkgs project,
+# the ones no longer outdated, and a fourteenth of all nixpkgs' projects, so
+# each is read weekly (nixkeeper_versions/cli.py). About 325 requests to
+# Repology's API a run, one a second, at most 465 (under its 1,000 a day
+# with two runs); Typst Universe's index, one
 # request (data/typst.json.gz); the Emacs archives' indexes, four
 # (data/emacs.json.gz); Stackage LTS, two (data/stackage.json.gz); CRAN and
 # Bioconductor, five (data/cran.json.gz); and GitHub
 # releases (data/releases.json.gz): weekly, an evaluation of nixpkgs for
-# where packages come from (Nix, about a minute), daily every one of their
-# repositories, 25 a GraphQL query (about 860 points, 37 minutes: the run
-# takes under an hour). The data branch is main plus one commit with the
+# where packages come from (Nix, about a minute), each run every one of their
+# repositories, 25 a GraphQL query (about 860 points, an hour: the run
+# takes about 75 minutes). The data branch is main plus one commit with the
 # digest (scripts/data-branch.sh).
 
 on:
   schedule:
-    - cron: '7 4 * * *'   # daily at 04:07 UTC: done well before 06:00
+    - cron: '7 4,16 * * *'   # 04:07 and 16:07 UTC: done before 06:15 and 18:15
   # Also started through the API at the same time from outside GitHub (its
   # schedule skips runs when busy), with if_older: whichever starts second
   # finds the digest fresh and stops.
   workflow_dispatch:
     inputs:
       full:
-        description: "Read all nixpkgs projects (about an hour), not a seventh"
+        description: "Read all nixpkgs projects (about an hour), not a fourteenth"
         type: boolean
         default: false
       if_older:
@@ -70,7 +72,7 @@ jobs:
         env:
           # Scheduled runs too: the outside start may have come first. (An
           # input reaches the shell as a variable, never as code.)
-          IF_OLDER: ${{ github.event_name == 'schedule' && '12' || inputs.if_older }}
+          IF_OLDER: ${{ github.event_name == 'schedule' && '10' || inputs.if_older }}
           # GitHub releases' GraphQL queries: public repositories' tags only.
           # GitHub releases: NIXKEEPER_VERSIONS_TOKEN, a personal token
           # reading public repositories only (5,000 points an hour); without
