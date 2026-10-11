@@ -9,9 +9,9 @@ name: "Digest: Repology's nixpkgs projects"
 # (data/emacs.json.gz); Stackage LTS, two (data/stackage.json.gz); CRAN and
 # Bioconductor, five (data/cran.json.gz); and GitHub
 # releases (data/releases.json.gz): weekly, an evaluation of nixpkgs for
-# where packages come from (Nix, about a minute), daily a seventh of their
-# repositories, 25 a GraphQL query with the workflow's own token (about 130
-# points of its 1,000 an hour). The data branch is main plus one commit with the
+# where packages come from (Nix, about a minute), daily every one of their
+# repositories, 25 a GraphQL query (about 860 points, 37 minutes: the run
+# takes under an hour). The data branch is main plus one commit with the
 # digest (scripts/data-branch.sh).
 
 on:
@@ -72,7 +72,11 @@ jobs:
           # input reaches the shell as a variable, never as code.)
           IF_OLDER: ${{ github.event_name == 'schedule' && '12' || inputs.if_older }}
           # GitHub releases' GraphQL queries: public repositories' tags only.
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # GitHub releases: NIXKEEPER_VERSIONS_TOKEN, a personal token
+          # reading public repositories only (5,000 points an hour); without
+          # it, the workflow's own (1,000: about enough, a run that gets low
+          # stops and reads the rest first the next day).
+          GITHUB_TOKEN: ${{ secrets.NIXKEEPER_VERSIONS_TOKEN || secrets.GITHUB_TOKEN }}
 
       - name: Publish the digest if it changed
         run: |

@@ -10,11 +10,15 @@ Two parts, with nixkeeper's own code (its flake input):
    minutes for every package), and from it the tag check nixkeeper's
    update checks would work out (nixkeeper.inferred.github_check): the
    repository, and the tag scheme as a pattern. Needs Nix.
-2. Each run, a seventh of the repositories, so each is read weekly, plus
-   those never read and those of packages Repology calls outdated: one
-   GraphQL query per BATCH repositories, each one's newest tags by commit
-   date and its latest release (drafts and pre-releases left out), with
-   the workflow's own token (GITHUB_TOKEN).
+2. Each run, every repository, so a release shows the next day: those
+   never read first, then those of packages Repology calls outdated, then
+   the rest, the longest unread first (a run GitHub cuts short, its token
+   low on points, leaves the newest read for the next). One GraphQL query
+   per BATCH repositories, each one's newest tags by commit date and its
+   latest release (drafts and pre-releases left out): about 860 queries
+   and points on 2026-10-11, 37 minutes; with NIXKEEPER_VERSIONS_TOKEN (a
+   personal token's 5,000 points an hour), else the workflow's own
+   (1,000: enough, barely).
 
 Kept between runs in releases-state.json.gz (where each package comes
 from, what each repository had); written for nixkeeper as
@@ -57,14 +61,11 @@ EVALUATE_EVERY = timedelta(days=7)
 CHUNK = 5000
 MIN_CHECKS = 10000
 # Repositories per query (100 made GitHub give up, 502: sorting tags by date
-# is heavy; 25 cost a point each), its newest tags to look through, a pause
-# between queries, and at most so many repositories a run (a seventh is
-# about 3,200).
+# is heavy; 25 cost a point each), its newest tags to look through, and a
+# pause between queries.
 BATCH = 25
 TAGS = 30
 PAUSE = 1.0
-ROTATION_DAYS = 7
-MAX_REPOS = 6000
 # Stop when the token has fewer points than this left, or after so many
 # queries failing in a row (GitHub isn't answering).
 MIN_POINTS = 50
@@ -179,21 +180,18 @@ def read_repos(keys, token, today):
     return found
 
 
-def due(keys, repos, outdated, rotation):
-    """The keys to read this run, at most MAX_REPOS: those never read, then
-    those of packages Repology calls outdated (outdated: their keys), then
-    the rotation's next seventh, going on from rotation["next"]. Returns
-    (keys, where the rotation goes on next time)."""
+def due(keys, repos, outdated):
+    """keys in the order to read them, all of them each run: those never
+    read, then those of packages Repology calls outdated (outdated: their
+    keys), then the rest, the longest unread first, so what a run cut short
+    didn't reach goes first the next time."""
     ordered = sorted(keys)
     never = [k for k in ordered if k not in repos]
     urgent = [k for k in ordered if k in outdated and k in repos]
-    share = -(-len(ordered) // ROTATION_DAYS)
-    start = rotation.get("next") or ""
-    after = [k for k in ordered if k >= start] + [k for k in ordered if k < start]
-    turn = after[:share]
-    going_on = after[share] if share < len(after) else ""
-    chosen = list(dict.fromkeys(never + urgent + turn))
-    return chosen[:MAX_REPOS], going_on
+    rest = sorted(
+        (k for k in ordered if k in repos), key=lambda k: repos[k].get("read") or ""
+    )
+    return list(dict.fromkeys(never + urgent + rest))
 
 
 def newest(check, repo):
@@ -283,15 +281,11 @@ def update(directory, now, outdated_attrs=(), on_evaluated=None):
     keys = {key(c) for c in checks.values()}
     for gone in set(repos) - keys:  # no package reads it any more
         del repos[gone]
-    rotation = state.setdefault("rotation", {})
-    chosen, going_on = due(keys, repos, outdated_keys(state, outdated_attrs), rotation)
-    print(
-        f"Reading {len(chosen):,} of {len(keys):,} repositories on GitHub...",
-        file=sys.stderr,
-    )
+    state.pop("rotation", None)  # the weekly rotation's place, before
+    chosen = due(keys, repos, outdated_keys(state, outdated_attrs))
+    print(f"Reading {len(chosen):,} repositories on GitHub...", file=sys.stderr)
     read_now = read_repos(chosen, token, now.date().isoformat())
     repos.update(read_now)
-    rotation["next"] = going_on
     write_json(directory, STATE, {"format": FORMAT, **state})
     packages = {}
     for attr, check in sorted(checks.items()):

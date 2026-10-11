@@ -6,7 +6,7 @@ newest versions of Typst Universe (typst.py) and the Emacs package
 archives (emacs.py), the Stackage LTS nixpkgs follows (stackage.py), CRAN
 and the Bioconductor release nixpkgs pins (cran.py), and GitHub-hosted
 packages' newest releases and tags (releases.py: weekly where they come
-from, daily a seventh of their repositories), and nixpkgs' own facts for
+from, daily every one of their repositories), and nixpkgs' own facts for
 readers without Nix (packages.py: every attribute's pname and version,
 and the sources releases.py evaluated): a failed read of those keeps
 their last, without stopping the digest. Each run (daily):
