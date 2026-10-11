@@ -2,14 +2,14 @@
 
 A digest of [Repology](https://repology.org)'s data for every nixpkgs
 project, for [nixkeeper](https://github.com/iedame/nixkeeper): each
-project's versions in every repository Repology knows, kept up to date daily
-by a workflow, so nixkeeper reads one file instead of asking Repology about
+project's versions in every repository Repology knows, kept up to date every
+12 hours by a workflow, so nixkeeper reads one file instead of asking Repology about
 each of its packages.
 
 It reads Repology the way nixpkgs-update does, from its lists of nixpkgs'
 projects, 200 to a request, and less often for what changes less often. All
-of nixpkgs costs about 200 requests a day, whatever nixkeeper tracks, well
-within Repology's [API rules](https://repology.org/api): at most one request
+of nixpkgs costs about 650 requests a day in two runs (at most 930),
+whatever nixkeeper tracks, within Repology's [API rules](https://repology.org/api): at most one request
 a second, under 1,000 a day, with a User-Agent linking here.
 
 ## The digest
@@ -123,8 +123,8 @@ On the `data` branch:
   pre-releases left out); `read` when the repository was read. Where each
   package comes from is evaluated from nixpkgs weekly (with Nix and
   nixkeeper's own code, this flake's input: about a minute); each run reads
-  every repository (about 21,400 on 2026-10-11, 37 minutes), so a release
-  shows the next day: those never read first, then those of packages
+  every repository (about 21,400 on 2026-10-11, an hour), so a release
+  shows within 12 hours: those never read first, then those of packages
   Repology has outdated, then the longest unread, 25 a GraphQL query (about
   860 points) with `NIXKEEPER_VERSIONS_TOKEN`, a personal token that only
   needs to read public repositories (5,000 points an hour), else the
@@ -171,16 +171,16 @@ it, so no history piles up.
 
 ## How it's kept up to date
 
-The "Digest" workflow runs daily at 04:07 UTC, before nixkeeper's daily
-sync:
+The "Digest" workflow runs every 12 hours, at 04:07 and 16:07 UTC, each
+run done (in about 75 minutes) before one of nixkeeper's syncs:
 
-1. **Outdated projects, every day**: Repology's list of nixpkgs' outdated
+1. **Outdated projects, every run**: Repology's list of nixpkgs' outdated
    projects, all of it (about 70 requests), as nixpkgs-update reads it. Every
-   outdated package's versions are at most a day old.
-2. **No longer outdated, every day**: the projects that were outdated and
-   aren't on today's list (updated in nixpkgs, mostly), read one by one (up
-   to 400).
-3. **All projects, every week**: a seventh of all nixpkgs' projects (90
+   outdated package's versions are at most 12 hours old.
+2. **No longer outdated, every run**: the projects that were outdated and
+   aren't on the list now (updated in nixpkgs, mostly), read one by one (up
+   to 250 a run).
+3. **All projects, every week**: a fourteenth of all nixpkgs' projects (45
    pages), going on where the last run stopped: up-to-date projects' other
    repositories, legacy versions (not on the outdated list), and
    vulnerabilities on versions that aren't outdated (Repology has no list
@@ -189,7 +189,7 @@ sync:
 4. **Renamed projects, the same day**: for each nixpkgs attribute of a
    project dropped in steps 2 and 3 that no project has any more, Repology
    is asked which project it's in now, one request each (its `project-by`
-   tool, up to 200). Repology renames or splits projects now and then
+   tool, up to 100 a run). Repology renames or splits projects now and then
    (2026-10-08: `urlencode` became `urlencode-dead10ck`, the old name kept
    by another program): without this, the attribute would be missing until
    the rotation reached the new name, up to a week, and nixkeeper would keep
@@ -209,7 +209,7 @@ nix run . -- data
 ```
 
 brings the digest in `data/` up to date (`-- data --full` reads all
-projects; `--if-older 12` only when the last run is over 12 hours old, so a
+projects; `--if-older 10` only when the last run is over 10 hours old, so a
 run started twice sweeps once; `--sources-only` the other sources only,
 Typst, Emacs, Stackage, CRAN and GitHub, with no request to Repology, to
 try them without spending its daily allowance: "sources_only" when
