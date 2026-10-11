@@ -123,9 +123,13 @@ On the `data` branch:
   pre-releases left out); `read` when the repository was read. Where each
   package comes from is evaluated from nixpkgs weekly (with Nix and
   nixkeeper's own code, this flake's input: about a minute); each run reads
-  a seventh of the repositories, so each weekly, plus those never read and
-  those of packages Repology has outdated, 25 a GraphQL query with the
-  workflow's own token. `releases-state.json.gz` keeps what that needs
+  every repository (about 21,400 on 2026-10-11, 37 minutes), so a release
+  shows the next day: those never read first, then those of packages
+  Repology has outdated, then the longest unread, 25 a GraphQL query (about
+  860 points) with `NIXKEEPER_VERSIONS_TOKEN`, a personal token that only
+  needs to read public repositories (5,000 points an hour), else the
+  workflow's own (1,000: a run that gets low stops, and reads what it
+  missed first the next day). `releases-state.json.gz` keeps what that needs
   between runs. A run that can't evaluate or reach GitHub keeps the last.
 
 - [`data/nixpkgs.json.gz`](https://raw.githubusercontent.com/iedame/nixkeeper-versions/data/data/nixpkgs.json.gz):

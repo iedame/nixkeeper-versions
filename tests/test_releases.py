@@ -78,18 +78,16 @@ class Newest(unittest.TestCase):
 
 
 class Due(unittest.TestCase):
-    def test_never_read_then_outdated_then_a_seventh(self):
-        keys = {f"r{i:02}|" for i in range(14)}
-        repos = {k: {"read": "2026-10-01"} for k in keys if k != "r13|"}
-        chosen, going_on = releases.due(keys, repos, {"r10|"}, {"next": "r05|"})
-        # r13 never read, r10 outdated, then 2 (14 / 7) from r05 on.
-        self.assertEqual(chosen, ["r13|", "r10|", "r05|", "r06|"])
-        self.assertEqual(going_on, "r07|")
-        # Wrapping round at the end.
-        chosen, going_on = releases.due(
-            keys, repos | {"r13|": {}}, set(), {"next": "r13|"}
+    def test_all_never_read_then_outdated_then_the_longest_unread(self):
+        keys = {f"r{i}|" for i in range(6)}
+        repos = {k: {"read": "2026-10-10"} for k in keys if k != "r5|"}
+        # r1 and r3 weren't reached by the last run, cut short.
+        repos["r1|"] = repos["r3|"] = {"read": "2026-10-09"}
+        self.assertEqual(
+            releases.due(keys, repos, {"r4|"}),
+            # r5 never read, r4 outdated, then the oldest read, by name.
+            ["r5|", "r4|", "r1|", "r3|", "r0|", "r2|"],
         )
-        self.assertEqual((chosen, going_on), (["r13|", "r00|"], "r01|"))
 
 
 class Update(unittest.TestCase):
