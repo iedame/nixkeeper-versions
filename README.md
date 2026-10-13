@@ -171,8 +171,11 @@ it, so no history piles up.
 
 ## How it's kept up to date
 
-The "Digest" workflow runs every 12 hours, at 04:07 and 16:07 UTC, each
-run done (in about 75 minutes) before one of nixkeeper's syncs:
+The "Digest" workflow runs every 12 hours, started from outside GitHub at
+04:15 and 16:15 UTC (nixkeeper's `start-runs`), each run done (in about 75
+minutes) before one of nixkeeper's syncs; its own schedule (05:37 and
+17:37, often hours late) is the fallback, and stops when the digest is
+under 10 hours old:
 
 1. **Outdated projects, every run**: Repology's list of nixpkgs' outdated
    projects, all of it (about 70 requests), as nixpkgs-update reads it. Every
