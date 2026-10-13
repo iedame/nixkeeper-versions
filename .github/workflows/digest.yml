@@ -18,10 +18,14 @@ name: "Digest: Repology's nixpkgs projects"
 
 on:
   schedule:
-    - cron: '7 4,16 * * *'   # 04:07 and 16:07 UTC: done before 06:15 and 18:15
-  # Also started through the API at the same time from outside GitHub (its
-  # schedule skips runs when busy), with if_older: whichever starts second
-  # finds the digest fresh and stops.
+    # The fallback, 05:37 and 17:37 UTC: the runs are started through the
+    # API from outside GitHub at 04:15 and 16:15 (its schedule comes hours
+    # late when busy: 16:07's at 22:53, 2026-10-12, and the outside start 5
+    # hours after found the digest fresh and stopped). Scheduled after
+    # them, with if_older, a scheduled run finds the digest fresh and stops
+    # however late it comes, and sweeps only when the outside start didn't
+    # (then over 13 hours old). Alone (a fork), it sweeps every 12 hours.
+    - cron: '37 5,17 * * *'
   workflow_dispatch:
     inputs:
       full:
@@ -70,7 +74,7 @@ jobs:
           ${{ inputs.sources_only && '--sources-only' || '' }}
           ${IF_OLDER:+--if-older "$IF_OLDER"}
         env:
-          # Scheduled runs too: the outside start may have come first. (An
+          # Scheduled runs too: the outside start comes first. (An
           # input reaches the shell as a variable, never as code.)
           IF_OLDER: ${{ github.event_name == 'schedule' && '10' || inputs.if_older }}
           # GitHub releases' GraphQL queries: public repositories' tags only.
