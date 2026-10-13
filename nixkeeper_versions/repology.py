@@ -17,7 +17,7 @@ import urllib.request
 API = "https://repology.org/api/v1"
 TOOLS = "https://repology.org/tools"
 NIX_REPO = "nix_unstable"
-USER_AGENT = "nixkeeper-versions (+https://github.com/iedame/nixkeeper-versions)"
+USER_AGENT = "nixkeeper-versions (+https://github.com/nixkeeper/digest-versions)"
 # Seconds from one request's start to the next's: Repology allows one a
 # second; a little more, to be sure.
 PAUSE = 1.1
