@@ -1,7 +1,7 @@
 # nixkeeper-versions
 
 A digest of [Repology](https://repology.org)'s data for every nixpkgs
-project, for [nixkeeper](https://github.com/iedame/nixkeeper): each
+project, for [nixkeeper](https://github.com/nixkeeper/nixkeeper): each
 project's versions in every repository Repology knows, kept up to date every
 12 hours by a workflow, so nixkeeper reads one file instead of asking Repology about
 each of its packages.
@@ -16,7 +16,7 @@ a second, under 1,000 a day, with a User-Agent linking here.
 
 On the `data` branch:
 
-- [`data/projects.jsonl.gz`](https://raw.githubusercontent.com/iedame/nixkeeper-versions/data/data/projects.jsonl.gz)
+- [`data/projects.jsonl.gz`](https://raw.githubusercontent.com/nixkeeper/digest-versions/data/data/projects.jsonl.gz)
   (about 12 MB): every Repology project with a nixpkgs package
   (`nix_unstable`), one per line, sorted by name:
 
@@ -33,7 +33,7 @@ On the `data` branch:
   can keep only those it wants while reading: about 25 MB of memory instead
   of 1.4 GB for all of them at once.
 
-- [`data/typst.json.gz`](https://raw.githubusercontent.com/iedame/nixkeeper-versions/data/data/typst.json.gz)
+- [`data/typst.json.gz`](https://raw.githubusercontent.com/nixkeeper/digest-versions/data/data/typst.json.gz)
   (about 17 KB): the newest version of each package on
   [Typst Universe](https://typst.app/universe/), the source of nixpkgs'
   `typstPackages`, whose versions Repology mostly can't compare, and the
@@ -48,7 +48,7 @@ On the `data` branch:
   package). A run that can't read it keeps the last (`fetchedAt` says how
   old).
 
-- [`data/emacs.json.gz`](https://raw.githubusercontent.com/iedame/nixkeeper-versions/data/data/emacs.json.gz)
+- [`data/emacs.json.gz`](https://raw.githubusercontent.com/nixkeeper/digest-versions/data/data/emacs.json.gz)
   (about 95 KB): the newest version of each package in each Emacs package
   archive nixpkgs' `emacsPackages` are made from (MELPA, MELPA Stable,
   NonGNU ELPA, GNU ELPA), whose versions Repology mostly can't compare
@@ -67,7 +67,7 @@ On the `data` branch:
   each entry's name and version are read). A run that can't read all four
   keeps the last (`fetchedAt` says how old).
 
-- [`data/stackage.json.gz`](https://raw.githubusercontent.com/iedame/nixkeeper-versions/data/data/stackage.json.gz)
+- [`data/stackage.json.gz`](https://raw.githubusercontent.com/nixkeeper/digest-versions/data/data/stackage.json.gz)
   (about 25 KB): the Stackage LTS series nixpkgs pins about 3,400 of its
   `haskellPackages` to, and that series' newest version of each: for
   those, the version to be at, not Hackage's newest (Stackage holds newer
@@ -85,7 +85,7 @@ On the `data` branch:
   own update script reads it). Two requests a run; a run that can't read
   either keeps the last.
 
-- [`data/cran.json.gz`](https://raw.githubusercontent.com/iedame/nixkeeper-versions/data/data/cran.json.gz):
+- [`data/cran.json.gz`](https://raw.githubusercontent.com/nixkeeper/digest-versions/data/data/cran.json.gz):
   CRAN's and Bioconductor's packages and versions, which nixpkgs'
   `rPackages` are generated from: CRAN as it is that day, and
   Bioconductor's release that nixpkgs pins (read from the top of
@@ -104,7 +104,7 @@ On the `data` branch:
   no longer on CRAN (archived) or in that Bioconductor release. A run that
   can't read all of them keeps the last.
 
-- [`data/releases.json.gz`](https://raw.githubusercontent.com/iedame/nixkeeper-versions/data/data/releases.json.gz):
+- [`data/releases.json.gz`](https://raw.githubusercontent.com/nixkeeper/digest-versions/data/data/releases.json.gz):
   for each nixpkgs package fetched from a GitHub tag (about 34,000
   attributes outside the sets above, 21,000 repositories), its newest
   version on GitHub, so nixkeeper doesn't depend on Repology for them:
@@ -132,9 +132,9 @@ On the `data` branch:
   missed first the next day). `releases-state.json.gz` keeps what that needs
   between runs. A run that can't evaluate or reach GitHub keeps the last.
 
-- [`data/nixpkgs.json.gz`](https://raw.githubusercontent.com/iedame/nixkeeper-versions/data/data/nixpkgs.json.gz):
+- [`data/nixpkgs.json.gz`](https://raw.githubusercontent.com/nixkeeper/digest-versions/data/data/nixpkgs.json.gz):
   nixpkgs' own facts about its packages, for readers without Nix (such as
-  [nixkeeper-vulnerabilities](https://github.com/iedame/nixkeeper-vulnerabilities),
+  [nixkeeper-vulnerabilities](https://github.com/nixkeeper/digest-vulnerabilities),
   which matches packages to advisories by registry name and version, and
   by source repository and tag or commit):
 
@@ -154,7 +154,7 @@ On the `data` branch:
   nixkeeper compares with their own sources). A run that can't read the
   index keeps the last.
 
-- [`data/meta.json`](https://raw.githubusercontent.com/iedame/nixkeeper-versions/data/data/meta.json):
+- [`data/meta.json`](https://raw.githubusercontent.com/nixkeeper/digest-versions/data/data/meta.json):
   when the outdated projects were last read (`outdatedAt`), how many there
   are, where the weekly rotation is (`rotation.next`, and `rotation.lapAt`,
   when it last went through all of them), the dropped projects' attributes

@@ -342,7 +342,7 @@ class Get(unittest.TestCase):
             "https://repology.org/api/v1/projects/tracy/?inrepo=nix_unstable&outdated=1",
         )
         self.assertIn(
-            "github.com/iedame/nixkeeper-versions", req.get_header("User-agent")
+            "github.com/nixkeeper/digest-versions", req.get_header("User-agent")
         )
         self.assertEqual(req.get_header("Accept-encoding"), "gzip")
 

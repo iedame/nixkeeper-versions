@@ -12,7 +12,7 @@
     # package's source from nixpkgs, works out its tag scheme, orders
     # versions and asks GitHub, so the digest says what nixkeeper would.
     nixkeeper = {
-      url = "github:iedame/nixkeeper";
+      url = "github:nixkeeper/nixkeeper";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-utils.follows = "flake-utils";
