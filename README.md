@@ -218,6 +218,15 @@ Typst, Emacs, Stackage, CRAN and GitHub, with no request to Repology, to
 try them without spending its daily allowance: "sources_only" when
 starting the workflow by hand). `nix flake check` runs the tests and lint, `nix fmt` formats.
 
+## AI & automation disclosure
+
+This digest's code and documentation are written with the assistance of an
+AI (Claude, by Anthropic), with a person in the loop: nixkeeper's maintainer
+decides what to build, and reviews and tests every change before it's
+merged. The digest itself is automation: a scheduled workflow that reads
+public sources and publishes what it finds. It never comments on, closes or
+merges anything in nixpkgs.
+
 ## License
 
 MIT
