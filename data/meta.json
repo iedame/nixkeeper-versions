@@ -1,0 +1,53 @@
+{
+  "caughtUp": 0,
+  "caughtUpRead": 0,
+  "cran": {
+    "annotation": 928,
+    "at": "2026-10-17T16:15:37+00:00",
+    "bioc": 2385,
+    "biocVersion": "3.23",
+    "cran": 25391,
+    "experiment": 434
+  },
+  "emacs": {
+    "at": "2026-10-17T16:15:37+00:00",
+    "gnu": 508,
+    "melpa": 6334,
+    "melpaStable": 3490,
+    "nongnu": 292
+  },
+  "format": 1,
+  "moved": {
+    "asked": 1,
+    "found": 0
+  },
+  "nixpkgs": {
+    "evaluatedAt": "2026-10-14T16:15:46+00:00",
+    "indexedAt": "2026-10-17T16:15:37+00:00",
+    "packages": 150769,
+    "sources": 69959
+  },
+  "outdated": 13778,
+  "outdatedAt": "2026-10-17T16:15:37+00:00",
+  "projects": 119172,
+  "releases": {
+    "at": "2026-10-17T16:15:37+00:00",
+    "evaluatedAt": "2026-10-14T16:15:46+00:00",
+    "packages": 33769,
+    "read": 21447
+  },
+  "requests": 116,
+  "rotation": {
+    "lapAt": "2026-10-14T16:15:46+00:00",
+    "next": "perl:perlio-via-symlink"
+  },
+  "stackage": {
+    "at": "2026-10-17T16:15:37+00:00",
+    "packages": 3367,
+    "snapshot": "lts-24.63"
+  },
+  "typst": {
+    "at": "2026-10-17T16:15:37+00:00",
+    "packages": 1684
+  }
+}
